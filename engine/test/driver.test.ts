@@ -30,11 +30,19 @@ const testRunner: TestRunner = {
 describe("runReview", () => {
   it("produces Tier 2 with the expected gate verdicts", async () => {
     const { tier, gates } = await runReview(ctx, { runner, mutator, testRunner,
-      sandbox: new StubSandbox(() => ({ stdout: "2 passed", stderr: "", exitCode: 0 })) });
+      sandbox: new StubSandbox(() => ({ stdout: "2 passed", stderr: "", exitCode: 0 })),
+      verifyClean: async () => true });
     expect(tier).toBe("tier-2");
     expect(gates.find(g => g.gate === 1)!.verdict).toBe("pass");
     expect(gates.find(g => g.gate === 2)!.verdict).toBe("abstain");
     expect(gates.find(g => g.gate === 3)!.verdict).toBe("needs-human");
     expect(gates.find(g => g.gate === 4)!.verdict).toBe("pass");
+  });
+
+  it("refuses to emit a result when the workdir is not restored to a clean state", async () => {
+    await expect(runReview(ctx, { runner, mutator, testRunner,
+      sandbox: new StubSandbox(() => ({ stdout: "2 passed", stderr: "", exitCode: 0 })),
+      verifyClean: async () => false }))
+      .rejects.toThrow(/workdir not restored to a clean state/);
   });
 });

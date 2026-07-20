@@ -34,4 +34,25 @@ describe("faultInjectGate", () => {
     expect(table.find(t => t.criterion === "caps at 50%").status).toBe("unguarded");
     expect(restored.length).toBe(2); // both mutations restored
   });
+
+  it("returns needs-human without running mutations when the baseline is not green", async () => {
+    let applyCalled = false;
+    const notCalledMutator: Mutator = { async apply(m) { applyCalled = true; return async () => {}; } };
+    const notCalledRunner: TestRunner = { async run() { throw new Error("should not be called"); } };
+    const res = await faultInjectGate({
+      criteria: [
+        { criterion: "applies percentage", mutation: { file: "d.py", find: "capped / 100", replace: "capped / 50" } },
+        { criterion: "caps at 50%", mutation: { file: "d.py", find: "else 50", replace: "" } },
+      ],
+      baselineOutcome: { passed: false, failedTests: ["test_applies"], raw: "" },
+      testCmd: "pytest", workdir: "/w", tier: "tier-2",
+      mutator: notCalledMutator, runner: notCalledRunner, sandbox: new StubSandbox(() => ({ stdout: "", stderr: "", exitCode: 0 })),
+    });
+    expect(res.gate).toBe(3);
+    expect(res.verdict).toBe("needs-human");
+    expect(applyCalled).toBe(false);
+    expect(res.evidence["guarding-test-table"]).toEqual([]);
+    expect(res.evidence["unguarded-paths"]).toEqual([]);
+    expect(res.evidence.baseline).toMatch(/not green/i);
+  });
 });

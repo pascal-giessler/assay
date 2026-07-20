@@ -27,7 +27,8 @@ describe("golden discount review (deterministic)", () => {
       return { passed: true, failedTests: [], raw: "2 passed" };
     } };
     const { markdown } = await runReview(ctx, { runner, mutator, testRunner,
-      sandbox: new StubSandbox(() => ({ stdout: "2 passed", stderr: "", exitCode: 0 })) });
+      sandbox: new StubSandbox(() => ({ stdout: "2 passed", stderr: "", exitCode: 0 })),
+      verifyClean: async () => true });
     expect(markdown).toMatch(/Risk tier.*Tier 2/i);
     expect(markdown).toMatch(/Gate 1[\s\S]*verdict.*pass/i);
     expect(markdown).toMatch(/Gate 2[\s\S]*abstain[\s\S]*no-baseline/i);

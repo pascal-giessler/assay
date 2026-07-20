@@ -7,6 +7,15 @@ export async function faultInjectGate(input: {
   testCmd: string; workdir: string; tier: Tier;
   mutator: Mutator; runner: TestRunner; sandbox: Sandbox;
 }): Promise<GateResult> {
+  if (!input.baselineOutcome.passed) {
+    return {
+      gate: 3, verdict: "needs-human",
+      evidence: {
+        "guarding-test-table": [], "unguarded-paths": [],
+        baseline: "not green — test adequacy indeterminate", tier: input.tier,
+      },
+    };
+  }
   const table: { criterion: string; status: "guarded" | "unguarded"; failedTests: string[] }[] = [];
   for (const c of input.criteria) {
     const restore = await input.mutator.apply(c.mutation, input.workdir);
