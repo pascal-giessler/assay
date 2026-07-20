@@ -39,7 +39,7 @@ same thing in the instructions and in the template.
 
 This kit is complete only when all of the following are true:
 
-- [ ] `blast-radius-checklist.md` exists and its three worked mini-examples resolve to the tiers they claim.
-- [ ] `reviewer-instructions.md` exists and covers all four gates, both Gate 1 requirement modes, the Gate 2 `abstain`/`no-baseline` path, and the Gate 3 fault-injection loop.
-- [ ] `artifact-template.md` exists with labelled slots for every required section and sub-item from the spec's "The artifact" section.
-- [ ] A worked example under `examples/` fills in the template end to end for a real (fixture) change, exercising `pass`, `needs-human`, and `abstain` verdicts.
+- [x] `blast-radius-checklist.md` exists and its three worked mini-examples resolve to the tiers they claim.
+- [x] `reviewer-instructions.md` exists and covers all four gates, both Gate 1 requirement modes, the Gate 2 `abstain`/`no-baseline` path, and the Gate 3 fault-injection loop.
+- [x] `artifact-template.md` exists with labelled slots for every required section and sub-item from the spec's "The artifact" section.
+- [x] A worked example under `examples/` fills in the template end to end for a real (fixture) change, exercising `pass`, `needs-human`, and `abstain` verdicts.

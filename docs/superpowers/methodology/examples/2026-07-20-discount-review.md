@@ -52,14 +52,16 @@
 
 ### Gate 2 — Architecture Conformance
 
-- **verdict:** <pass | fail | needs-human | abstain (no-baseline)>
+- **verdict:** abstain (no-baseline)
 - **evidence:**
-  - Stated architecture reference used (if any): <link, or "none supplied — abstain (no-baseline)">
+  - Stated architecture reference used (if any): none supplied — abstain (no-baseline)
   - Structural changes, each tagged:
 
     | Structural change | Tag |
     |---|---|
-    | <change 1> | <fits existing pattern | new pattern — justified? y/n | unjudged (no-baseline)> |
+    | `apply_discount(price, percent)` is a single pure function — no new module seams, no cross-boundary calls (no I/O, no imports beyond the module itself, no calls into other subsystems) | unjudged (no-baseline) |
+
+  Per Gate 2's procedure, no stated architecture reference (module-boundary doc, dependency policy, ADR) was supplied for this fixture, and surrounding code was **not** consulted to infer one — inferring conventions from what's already there would merely ratify existing drift. The one structural fact present (a single pure function with no cross-boundary calls) is recorded as unjudged rather than approved or rejected. This is the only verdict Gate 2 may emit when there is no reference.
 
 ### Gate 3 — Test Adequacy
 
@@ -80,26 +82,33 @@
 
 ### Gate 4 — Regression
 
-- **verdict:** <pass | fail | needs-human>
+- **verdict:** pass
 - **evidence:**
-  - Suite run output / CI link: <fill in>
-  - **selection-basis:** <full suite | tool-selected affected subset (unsound — may miss integration seams)>
-  - Pass/fail outcome: <fill in>
+  - Suite run output / CI link:
+
+    ```
+    $ python -m pytest -q
+    ..                                                                       [100%]
+    2 passed in 0.00s
+    ```
+
+    (fixture confirmed byte-identical to its committed state via `git diff --exit-code discount.py` — no diff — immediately before this run; see Gate 3 for the mutation runs this final run follows.)
+  - **selection-basis:** full suite — both tests in `test_discount.py` (`test_applies_percentage`, `test_zero_percent_is_full_price`) ran; the fixture's entire test suite is these two tests, so "full suite" and "every test that exists for this changeset" coincide here. No tool-selected subset was used.
+  - Pass/fail outcome: pass — `2 passed`, no failures.
 
 ## 3. Synthesis
 
-- **Overall verdict:** <pass | fail | needs-human | abstain — derived from the gate verdicts above; a changeset is "reviewed" only when every mandatory gate for its tier is pass, or a human has explicitly accepted a non-pass verdict>
+- **Overall verdict:** needs-human — Gate 1 is `pass`, Gate 2 is `abstain (no-baseline)`, Gate 4 is `pass`, but Gate 3 is `needs-human` (its Tier 2 unguarded-criterion auto-escalation). Per the gate-ordering rule, a changeset is "reviewed" only when every mandatory gate for its tier is `pass`, or a human has explicitly accepted a non-pass verdict; Gate 3's `needs-human` has not yet been accepted by a human, so the overall verdict is driven down to `needs-human` even though Gate 1 confirmed intent and Gate 4 confirmed regression safety.
 - **What the human must personally verify:**
-  - <item 1 — e.g. confirm/correct the Gate 1 inferred-intent statement>
-  - <item 2 — e.g. accept or reject the Gate 2 new-pattern justification, or supply the missing baseline>
-  - <item 3 — e.g. decide whether the Gate 3 unguarded-paths list is acceptable>
-  - <Tier 2 only: named human confirmation for every gate verdict marked pass>
+  - The one thing the human must verify: **is leaving the 50% cap untested acceptable?** — fault injection (Gate 3) proved that removing the `percent <= 50 else 50` clamp entirely leaves the full test suite green (`2 passed`); no test currently exercises any `percent > 50` input, so a future regression that silently drops the cap would ship undetected. The human must decide whether to accept this gap as-is or require a guarding test (e.g. `apply_discount(100.0, 75.0) == 50.0`) before treating this changeset as reviewed.
+  - Confirm the Gate 2 abstention is appropriate: no architecture reference exists for this fixture, so the single structural fact (a pure function, no cross-boundary calls) was left `unjudged (no-baseline)` rather than approved. If an architecture reference is later supplied for this codebase, Gate 2 should be re-run against it.
+  - Tier 2 requirement: named human confirmation is required for every gate verdict marked `pass` — Gate 1 (`pass`) and Gate 4 (`pass`) both require this confirmation before the changeset can be considered reviewed, even though the overall verdict is already `needs-human` on Gate 3's grounds alone.
 
 ## 4. What this review does NOT establish
 
 *(Required. A review that cannot honestly fill this in is not complete.)*
 
-- **Shared-blind-spot residue:** <requirement-implications that both the author-AI and reviewer-AI would miss for this specific changeset>
-- **Downgraded/abstained gates:** <any gate that ran in abstain, no-baseline, or downgraded-claim mode, and why — or "none">
-- **Unguarded criteria:** <behaviors from Gate 3 with no test that fails when they break — this is the same list as unguarded-paths above, repeated here for visibility — or "none">
-- **Regression selection basis:** <whether the Gate 4 green signal came from the full suite or an unsound affected-subset>
+- **Shared-blind-spot residue:** neither the author-AI (Task 5, which wrote `discount.py` and its tests) nor this reviewer-AI considered negative-price or negative-percent inputs (e.g. `apply_discount(-10.0, 10.0)` or `apply_discount(100.0, -20.0)`). The stated requirement ("apply the given percentage discount, capped at 50%") says nothing about valid ranges for `price` or `percent`, and both AIs reconstructed/implemented behavior only for the "normal" positive-value case implied by the two existing tests. This is a shared blind spot precisely because it sits outside what either AI's context (author's task, reviewer's diff-plus-criteria) prompted either of them to consider — it would need a human or a separate spec pass to surface.
+- **Downgraded/abstained gates:** Gate 2 ran in `abstain (no-baseline)` mode — no stated architecture reference exists for this fixture, so its one structural fact (a single pure function, no cross-boundary calls) was recorded as unjudged rather than approved or rejected, per the rule that Gate 2 must never infer a baseline from surrounding code.
+- **Unguarded criteria:** the "caps the discount at 50%" criterion has no guarding test — this is the same finding as Gate 3's `unguarded-paths` above: removing the `percent <= 50 else 50` clamp entirely leaves the full suite green (`2 passed`), because neither existing test ever passes a `percent` value above 50.
+- **Regression selection basis:** the Gate 4 green signal (`2 passed`) came from the **full suite**, not a tool-selected affected subset — both tests that exist for this fixture were run. This is a sound signal by Gate 4's own criteria, but it is still bounded by what tests exist: the full suite being green says nothing about the missing percent>50 test noted above, since that test simply does not exist to be run.
