@@ -42,7 +42,7 @@ The **driver** sequences gates 1→2→3→4 honoring the tier's mandatoriness r
 The core never calls a model directly. For a judgment gate it builds a **blind evidence bundle** — the diff, the spec/requirement (if any), and the test results — and *deliberately excludes any authoring context*. It hands the bundle plus the gate prompt to whichever model context is driving:
 
 - When the engine runs under an agent (fast-follow Skill/Command/Agent, or MCP), the ambient fresh subagent executes the prompt.
-- In CLI/CI mode with no ambient agent, the core shells out to a headless `claude -p` invocation with the same bundle and prompt.
+- In CLI/CI mode with no ambient agent, the core shells out to a headless `claude -p` invocation with the same bundle and prompt, run inside the Docker sandbox (see "Execution isolation").
 
 One code path, one bundle format. Independence (Gate 1's blindness) is structural: CI jobs and fresh subagents carry no authoring history, and the bundle never contains it regardless.
 
@@ -60,6 +60,19 @@ Slice implementations: `PythonSourceMutator` (edits Python source in place, rest
 **Targeting mode (a):** the engine does *not* auto-locate mutation points (that is full mutation-testing territory, e.g. mutmut, and is heavier than the methodology needs). Instead, for each criterion "that matters," the **judgment context names the mutation target and the concrete mutation** (e.g. "in `discount.py`, remove the `else 50` cap"), and the engine mechanically applies it, runs the suite, and records red/green. Fault-injection stays *targeted verification of specific criteria*, not blanket mutation. A criterion whose mutation leaves the suite green is recorded as an **unguarded criterion**; at Tier 2 that auto-escalates Gate 3 to `needs-human`.
 
 **Hygiene guarantee:** the `Mutator` restores the working tree after every mutation; the engine asserts the tree is byte-identical to its pre-run state before producing the artifact, and refuses to emit a result if restoration failed. (This mirrors the discipline the manual worked example had to follow by hand.)
+
+## Execution isolation (Docker sandbox)
+
+Every operation that touches the target repository executes inside a Docker container, never on the host: running the target's test suite is executing untrusted code, source mutation edits that repo, and the `claude -p` judgment call runs an agent against it. The host engine (TypeScript/Node) orchestrates; the container executes.
+
+- **`Sandbox` interface** — `run(command, {mounts, env, network}) -> {stdout, stderr, exit}`. The core routes all target-touching work (`Mutator` edits, `TestRunner` runs, `HeadlessClaudeRunner`'s `claude -p`) through it. The slice ships one implementation, `DockerSandbox`.
+- **Image** — a base image carrying Node (to run in-container helpers if needed), the target toolchain (Python + pytest for the slice), and the `claude` CLI. The changeset `workdir` is mounted in; mutations and test runs happen on the mounted copy so the host tree is never modified.
+- **Network policy is split by step, because the two kinds of work have opposite needs:**
+  - *Test runs and mutations* → network **disabled** (`--network none`). Untrusted code must not reach out.
+  - *The `claude -p` judgment call* → network **enabled** but minimal, since it must reach the model API. It receives the blind evidence bundle (already excludes authoring context) and the gate prompt; it does not get unrestricted access to run the target's code.
+  This means fault-injection/regression and judgment run as **separate sandbox invocations** with different network policies, not one long-lived container.
+- **Auth** — the model credential for `claude -p` is passed into the judgment invocation via env at run time (never baked into the image). The plan decides the exact variable and whether to support mounted credentials.
+- **Hygiene** — because mutations happen on the mounted copy inside the sandbox, the host repo is protected by construction; the `Mutator`'s restore step still runs in-container so successive mutations start clean, and the engine still asserts a clean tree before emitting the artifact.
 
 ## The changeset context
 
@@ -90,6 +103,7 @@ review serve [--report <path>] [--port <n>]
 - **Fault-injection unit tests:** the percentage mutation yields red (guarded); the cap-removal mutation yields green (unguarded); the working tree is restored byte-identical after each; the engine refuses to emit if restoration fails.
 - **Triage unit tests:** the checklist's three worked examples resolve to Tier 0/1/2.
 - **Judgment delegation:** tested with a stub `JudgmentRunner` (deterministic canned bundle→result) so the driver and artifact assembly are testable without a live model; the real `HeadlessClaudeRunner` gets a thin integration test behind a flag.
+- **Sandbox:** unit tests stub the `Sandbox` interface so gate logic is testable without Docker. The deterministic golden e2e uses the real `DockerSandbox` (needs Docker available) for the pytest runs while stubbing the `JudgmentRunner`; both Docker-dependent and model-dependent tests sit behind integration flags so the pure-unit suite runs anywhere.
 
 ## Out of scope (fast-follows)
 
