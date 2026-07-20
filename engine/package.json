@@ -1,0 +1,20 @@
+{
+  "name": "review-engine",
+  "version": "0.0.1",
+  "type": "module",
+  "bin": { "review": "dist/cli/index.js" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:int": "vitest run --mode integration"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^20.14.0"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "execa": "^9.4.0"
+  }
+}
