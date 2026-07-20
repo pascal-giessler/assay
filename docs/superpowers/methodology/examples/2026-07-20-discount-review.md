@@ -7,7 +7,7 @@
   - Blast-radius item(s) triggered:
     - a guard / branch condition — `capped = percent if percent <= 50 else 50` is a branch condition that decides whether the raw or clamped percent is used.
     - money / quantity / unit arithmetic — `round(price * (1 - capped / 100), 2)` computes a monetary result directly from `price` and the (possibly clamped) discount percentage.
-  - Per the blast-radius checklist, one qualifying touch is sufficient for Tier 2, and this changeset has two independent qualifying touches (guard + arithmetic) — the same combination as the checklist's own worked example ("Discount-cap constant change").
+  - Per the blast-radius checklist, one qualifying touch is sufficient for Tier 2, and this changeset has two independent qualifying touches (guard + arithmetic), which also lands in Tier 2, sharing the money-arithmetic trigger with the checklist's example 3 ("Discount-cap constant change").
 - **Gate 1 requirement mode:** spec mode (stated requirement: "apply the given percentage discount, capped at 50%")
 
 ## 2. Gate sections
@@ -77,7 +77,7 @@
 
   - **unguarded-paths:** cap-at-50% has no failing test — removing the `percent <= 50 else 50` clamp entirely leaves the suite green because neither `test_applies_percentage` (percent=10.0) nor `test_zero_percent_is_full_price` (percent=0.0) ever passes a `percent` value above 50.
 
-  - Both mutations were reverted immediately after their run; the fixture was confirmed byte-identical to its committed state (`git diff --exit-code discount.py` — no diff) and green (`2 passed`) before this record was written. See `task-7-report.md` for verbatim pytest output of both runs.
+  - Both mutations were reverted immediately after their run; the fixture was confirmed byte-identical to its committed state (`git diff --exit-code discount.py` — no diff) and green (`2 passed`) before this record was written. The first mutation (divisor change) produced `assert 80.0 == 90.0` (red); the second mutation (cap removal) produced `2 passed` (green).
   - Per the tier-gating rule (Tier 2: any unguarded criterion auto-escalates Gate 3 to `needs-human`, regardless of how many other criteria are guarded), the single unguarded criterion above forces this gate's verdict to `needs-human` even though the percentage criterion is solidly guarded.
 
 ### Gate 4 — Regression

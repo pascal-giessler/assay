@@ -78,7 +78,7 @@ Use this list to check the template below before it is trusted (Step 3 of Task 4
 
 ### Gate 3 — Test Adequacy
 
-- **verdict:** <pass | needs-human | fail | N/A — Tier 0 skips this gate>
+- **verdict:** <pass | needs-human | fail>
 - **Fault injection run?** <yes | no (Tier 1 downgrade — claim is "tests plausibly relate to the criterion") | required at this tier>
 - **evidence:**
   - **guarding-test-table:**

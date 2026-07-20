@@ -14,7 +14,7 @@ Apply the procedure below to each of these before trusting it on real changesets
 2. **New endpoint handler, no blast-radius touch.** A new `GET /widgets/:id/notes` handler is added. It is purely additive (no existing signature is changed or removed), reads from an existing repository method, returns plain data with no guard/branch logic beyond routing, introduces no new default/constant, performs no auth check (route sits behind existing middleware, unmodified), touches no migration or schema, does no money/quantity arithmetic, and opens no new transaction or concurrency boundary. → **Tier 1**
 3. **Discount-cap constant change.** A one-line change edits `MAX_DISCOUNT_PERCENT = 20` to `MAX_DISCOUNT_PERCENT = 25`. This is simultaneously a default-value/constant change and money/quantity arithmetic input. → **Tier 2**
 
-(Verification of these three against the procedure below is recorded in the task report; see `task-2-report.md`.)
+(Verification of these three against the procedure below follows directly from applying the 7 blast-radius items listed here.)
 
 ---
 
