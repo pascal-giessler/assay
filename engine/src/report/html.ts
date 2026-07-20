@@ -2,12 +2,23 @@ const escape = (s: string) => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&l
 const badge = (s: string) =>
   s.replace(/\b(pass|fail|needs-human|abstain)\b/g, m => `<span class="v v-${m}">${m}</span>`);
 
+const DNE_HEADING = "What this review does NOT establish";
+
+function wrapDneSection(body: string): string {
+  const marker = `<h2>${DNE_HEADING}</h2>`;
+  const idx = body.indexOf(marker);
+  if (idx === -1) return body;
+  return `${body.slice(0, idx)}<section class="dne">${body.slice(idx)}</section>`;
+}
+
 export function renderReport(markdown: string, title = "Review Report"): string {
-  const body = badge(escape(markdown))
-    .replace(/^## (.*)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.*)$/gm, "<h1>$1</h1>")
-    .replace(/^- (.*)$/gm, "<li>$1</li>")
-    .replace(/\n/g, "\n");
+  const body = wrapDneSection(
+    badge(escape(markdown))
+      .replace(/^## (.*)$/gm, "<h2>$1</h2>")
+      .replace(/^# (.*)$/gm, "<h1>$1</h1>")
+      .replace(/^- (.*)$/gm, "<li>$1</li>")
+      .replace(/\n/g, "\n")
+  );
   return `<!doctype html><html><head><meta charset="utf-8"><title>${escape(title)}</title>
 <style>
 body{font:16px/1.5 system-ui,sans-serif;max-width:52rem;margin:2rem auto;padding:0 1rem;color:#111}
