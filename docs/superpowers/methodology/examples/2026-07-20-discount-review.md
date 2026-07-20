@@ -63,16 +63,20 @@
 
 ### Gate 3 — Test Adequacy
 
-- **verdict:** <pass | needs-human | fail | N/A — Tier 0 skips this gate>
-- **Fault injection run?** <yes | no (Tier 1 downgrade — claim is "tests plausibly relate to the criterion") | required at this tier>
+- **verdict:** needs-human
+- **Fault injection run?** yes — required at this tier (Tier 2)
 - **evidence:**
   - **guarding-test-table:**
 
     | Criterion | Guarding test(s) | Injected fault | Red/Green |
     |---|---|---|---|
-    | <criterion 1> | <test(s)> | <mutation applied> | <red | green> |
+    | applies the given percentage discount | `test_applies_percentage` | Changed `1 - capped / 100` to `1 - capped / 50` in the return statement | red — `test_applies_percentage` failed (`assert 80.0 == 90.0`); `test_zero_percent_is_full_price` still passed since 0% is unaffected by the divisor change |
+    | caps the discount at 50% | none | Changed `capped = percent if percent <= 50 else 50` to `capped = percent` (cap removed entirely) | green — `2 passed`, full suite still green; no test exercises `percent > 50`, so the cap's removal is invisible to the suite |
 
-  - **unguarded-paths:** <list every criterion whose mutation left the suite green, or state "none" explicitly>
+  - **unguarded-paths:** cap-at-50% has no failing test — removing the `percent <= 50 else 50` clamp entirely leaves the suite green because neither `test_applies_percentage` (percent=10.0) nor `test_zero_percent_is_full_price` (percent=0.0) ever passes a `percent` value above 50.
+
+  - Both mutations were reverted immediately after their run; the fixture was confirmed byte-identical to its committed state (`git diff --exit-code discount.py` — no diff) and green (`2 passed`) before this record was written. See `task-7-report.md` for verbatim pytest output of both runs.
+  - Per the tier-gating rule (Tier 2: any unguarded criterion auto-escalates Gate 3 to `needs-human`, regardless of how many other criteria are guarded), the single unguarded criterion above forces this gate's verdict to `needs-human` even though the percentage criterion is solidly guarded.
 
 ### Gate 4 — Regression
 
