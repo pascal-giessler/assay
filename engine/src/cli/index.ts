@@ -82,7 +82,7 @@ async function main(): Promise<void> {
   const { runReview } = await import("../core/driver");
   const { renderReport } = await import("../report/html");
 
-  const image = process.env.REVIEW_SANDBOX_IMAGE ?? "python:3.12-slim";
+  const image = process.env.REVIEW_SANDBOX_IMAGE ?? "review-engine-python:latest";
   const sandbox = new DockerSandbox({ image });
   const runner = new HeadlessClaudeRunner(sandbox, { image });
   const mutator = new PythonSourceMutator();

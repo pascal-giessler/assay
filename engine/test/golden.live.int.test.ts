@@ -8,7 +8,7 @@ const on = process.env.RUN_INT === "1" && process.env.ANTHROPIC_API_KEY;
 (on ? describe : describe.skip)("live golden (Docker + claude -p)", () => {
   it("surfaces the unguarded 50% cap on the real fixture", async () => {
     const workdir = new URL("../../docs/superpowers/methodology/fixtures/discount", import.meta.url).pathname;
-    const sandbox = new DockerSandbox({ image: process.env.REVIEW_IMAGE ?? "review-engine-python:latest" });
+    const sandbox = new DockerSandbox({ image: process.env.REVIEW_SANDBOX_IMAGE ?? "review-engine-python:latest" });
     const ctx = await loadChangeset({ range: "HEAD~1..HEAD", workdir, testCmd: "python -m pytest -q", requirement: "apply the given percentage discount, capped at 50%" });
     const { markdown, gates } = await runReview({ ...ctx, diff: ctx.diff || "capped = percent if percent <= 50 else 50" }, {
       runner: new HeadlessClaudeRunner(sandbox), mutator: new PythonSourceMutator(),
