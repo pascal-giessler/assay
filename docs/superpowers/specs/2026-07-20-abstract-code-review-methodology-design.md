@@ -82,7 +82,7 @@ A change escalates when it touches **any** of:
 
 - a guard / branch condition
 - a default value or constant
-- a public or shared contract / signature
+- a public or shared contract / signature — specifically *changing or removing* an existing one; introducing a purely new contract does not by itself escalate (an additive change breaks no existing caller)
 - auth or permission logic
 - a data migration or schema change
 - money / quantity / unit arithmetic
