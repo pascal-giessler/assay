@@ -20,7 +20,7 @@ An invocation-agnostic **core** implements the gate contracts, the driver that s
 - **CLI adapter** (this slice): `review`, `review serve`.
 - **Fast-follow adapters** (out of slice): CI/CD templates, a Claude Code Skill/Command that dispatches a fresh reviewer subagent, an MCP adapter exposing the driver/gates as tools.
 
-The engine is a Python package (Python matches the target ecosystem, native pytest invocation, straightforward source mutation, and easy `claude -p` shell-out).
+The engine is a **TypeScript/Node package**. The engine's implementation language is independent of the target ecosystem it reviews: fault-injection reaches the target only through the `Mutator` and `TestRunner` interfaces (file edits + a subprocess like `python -m pytest`), so a TypeScript engine reviewing Python code is clean. TypeScript is chosen because the planned fast-follow adapters land in its ecosystem — the official MCP SDK is TypeScript/Node, and the Skill/Command adapter and the HTML report renderer are natural there — while `claude -p` shell-out and CLI tooling (commander/oclif) are mature in Node. (If AST-aware mutation targeting is wanted later, tree-sitter has Node bindings for the target languages; the slice uses targeted text mutation and does not need it.)
 
 ## The gates in this slice
 
