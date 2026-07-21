@@ -37,6 +37,40 @@
   .topmeta { font-family: var(--mono); font-size: 12px; color: var(--ink-faint);
     letter-spacing: .02em; }
 
+  /* ---- triage queue ---- */
+  .queue { padding: 34px 0 6px; }
+  .qhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
+  .qtitle { margin: 6px 0 0; font-size: 22px; letter-spacing: -.02em; font-weight: 620; }
+  .qstat { display: flex; gap: 20px; font-family: var(--mono); font-size: 11.5px;
+    color: var(--ink-faint); letter-spacing: .02em; }
+  .qstat b { color: var(--ink-dim); font-weight: 600; }
+  .qstat .hot b { color: var(--human); } .qstat .bad b { color: var(--fail); }
+  table.q { width: 100%; border-collapse: collapse; }
+  table.q th { text-align: left; font-family: var(--mono); font-weight: 500; font-size: 10px;
+    letter-spacing: .11em; text-transform: uppercase; color: var(--ink-faint);
+    padding: 0 16px 10px 0; border-bottom: 1px solid var(--line); }
+  table.q th.num, table.q td.num { text-align: right; padding-right: 2px; }
+  table.q td { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--line-soft);
+    color: var(--ink-dim); font-size: 14px; vertical-align: middle; }
+  table.q tbody tr { transition: background .18s ease; }
+  table.q tbody tr:hover { background: var(--surface); }
+  table.q tr.active { background: var(--surface); }
+  table.q tr.active .ch a { color: var(--ink); font-weight: 560; }
+  table.q tr.active .pr { color: var(--gold); }
+  table.q .pr { font-family: var(--mono); font-size: 12.5px; color: var(--ink-faint); white-space: nowrap; }
+  table.q .ch a { color: var(--ink); text-decoration: none; }
+  table.q .ch a:hover { color: var(--gold); }
+  .open-flag { font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--gold); margin-left: 9px; vertical-align: 1px; }
+  .tt { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; padding: 3px 8px;
+    border-radius: 3px; border: 1px solid var(--line); color: var(--ink-dim); white-space: nowrap; }
+  .tt.t2 { color: var(--fail); border-color: rgba(216,112,95,.45); }
+  .tt.t0 { color: var(--ink-faint); border-color: var(--line-soft); }
+  .ug { font-family: var(--mono); font-size: 12.5px; color: var(--ink-faint); }
+  .ug.hot { color: var(--fail); font-weight: 600; }
+  .age { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); }
+  .openlabel { margin: 44px 0 -20px; }
+
   /* ---- review header ---- */
   .head { padding: 40px 0 30px; display: grid; gap: 26px;
     grid-template-columns: minmax(0,1fr) auto; align-items: start; }
@@ -182,10 +216,79 @@
         </svg>
         <span class="word">as<b>say</b></span>
       </div>
-      <div class="topmeta">review · 2026-07-21 09:41 UTC</div>
+      <div class="topmeta">checkout-service · reviews</div>
     </div>
 
-    <div class="head">
+    <div class="queue">
+      <div class="qhead">
+        <div>
+          <div class="glabel">Triage queue</div>
+          <h2 class="qtitle">checkout-service</h2>
+        </div>
+        <div class="qstat">
+          <span class="hot"><b>3</b> need human</span>
+          <span class="bad"><b>1</b> failing</span>
+          <span><b>6</b> open</span>
+        </div>
+      </div>
+      <table class="q">
+        <thead><tr><th>PR</th><th>Change</th><th>Tier</th><th>Verdict</th><th class="num">Unguarded</th><th class="num">Opened</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="pr">#251</td>
+            <td class="ch"><a href="#open">Rate-limit repeated login attempts</a></td>
+            <td><span class="tt t2">Tier 2</span></td>
+            <td><span class="chip human">needs&#8209;human</span></td>
+            <td class="num"><span class="ug hot">1</span></td>
+            <td class="num"><span class="age">2h</span></td>
+          </tr>
+          <tr class="active" aria-current="true">
+            <td class="pr">#248</td>
+            <td class="ch"><a href="#open">Apply tiered discount, capped at 50%</a><span class="open-flag">open</span></td>
+            <td><span class="tt t2">Tier 2</span></td>
+            <td><span class="chip human">needs&#8209;human</span></td>
+            <td class="num"><span class="ug hot">1</span></td>
+            <td class="num"><span class="age">4h</span></td>
+          </tr>
+          <tr>
+            <td class="pr">#246</td>
+            <td class="ch"><a href="#open">Cache product thumbnails on the CDN</a></td>
+            <td><span class="tt t1">Tier 1</span></td>
+            <td><span class="chip pass">pass</span></td>
+            <td class="num"><span class="ug">0</span></td>
+            <td class="num"><span class="age">6h</span></td>
+          </tr>
+          <tr>
+            <td class="pr">#245</td>
+            <td class="ch"><a href="#open">Rename qty to quantity across the cart</a></td>
+            <td><span class="tt t0">Tier 0</span></td>
+            <td><span class="chip pass">pass</span></td>
+            <td class="num"><span class="ug">0</span></td>
+            <td class="num"><span class="age">1d</span></td>
+          </tr>
+          <tr>
+            <td class="pr">#243</td>
+            <td class="ch"><a href="#open">Move order totals to decimal money</a></td>
+            <td><span class="tt t2">Tier 2</span></td>
+            <td><span class="chip fail">fail</span></td>
+            <td class="num"><span class="ug">&mdash;</span></td>
+            <td class="num"><span class="age">1d</span></td>
+          </tr>
+          <tr>
+            <td class="pr">#240</td>
+            <td class="ch"><a href="#open">Add CSV export for order history</a></td>
+            <td><span class="tt t1">Tier 1</span></td>
+            <td><span class="chip pass">pass</span></td>
+            <td class="num"><span class="ug">0</span></td>
+            <td class="num"><span class="age">2d</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="glabel openlabel">Open review</div>
+
+    <div class="head" id="open">
       <div>
         <div class="repo">checkout-service&nbsp;&middot;&nbsp;PR&nbsp;#248&nbsp;&middot;&nbsp;<span class="sha">a1f4c9e..7de2b03</span></div>
         <h1 class="title">Apply tiered discount, capped at 50%</h1>

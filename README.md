@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/brand/assay-logo.png" alt="Assay" width="360">
+</p>
+
 <h1 align="center">Assay</h1>
 
 <p align="center"><strong>Independent review that proves your tests.</strong></p>
