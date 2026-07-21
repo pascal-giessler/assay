@@ -53,5 +53,7 @@ describe("golden discount review (deterministic)", () => {
     expect(de.markdown).toMatch(/Architekturkonformität/);
     expect(de.markdown).toMatch(/\[ungesichert\]/);
     expect(de.overlay?.n3.status).toBe("unguarded");
+    expect(de.markdown).toMatch(/Ist es akzeptabel, diese ungetestet zu lassen\?/);
+    expect(de.markdown).toMatch(/Eingaben, die weder Autor noch Prüfer/);
   });
 });

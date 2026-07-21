@@ -33,6 +33,13 @@ const en: Strings = {
   "panel.guardedBy": "Guarded by",
   "panel.noTest": "no test guards this path",
   "legend.title": "Coverage",
+  "synth.leaveUntested": "is leaving these untested acceptable?",
+  "synth.confirmIntent": "confirm intent",
+  "dne.sharedBlindSpotText": "inputs neither author nor reviewer considered (e.g. negative price/percent)",
+  "dne.gate2NoFlow": "Gate 2 abstained (flow not synthesized)",
+  "dne.gate2NoBaseline": "Gate 2: no architecture baseline (diagram is comprehension-only)",
+  "common.none": "none",
+  "regression.fullSuite": "full suite",
 };
 
 const de: Strings = {
@@ -67,6 +74,13 @@ const de: Strings = {
   "panel.guardedBy": "Abgesichert durch",
   "panel.noTest": "kein Test sichert diesen Pfad ab",
   "legend.title": "Abdeckung",
+  "synth.leaveUntested": "Ist es akzeptabel, diese ungetestet zu lassen?",
+  "synth.confirmIntent": "Absicht bestätigen",
+  "dne.sharedBlindSpotText": "Eingaben, die weder Autor noch Prüfer berücksichtigt haben (z. B. negativer Preis/Prozentsatz)",
+  "dne.gate2NoFlow": "Tor 2 enthalten (Ablauf nicht erzeugt)",
+  "dne.gate2NoBaseline": "Tor 2: keine Architektur-Baseline (Diagramm dient nur dem Verständnis)",
+  "common.none": "keine",
+  "regression.fullSuite": "gesamte Suite",
 };
 
 export const TABLES: Record<Lang, Strings> = { en, de };

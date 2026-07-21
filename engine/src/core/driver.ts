@@ -11,6 +11,7 @@ import type { JudgmentRunner, FlowGraph, FlowOverlay } from "../judgment/runner.
 import type { Mutator, TestRunner } from "../faultinject/interfaces.js";
 import type { Sandbox } from "../sandbox/sandbox.js";
 import type { Lang } from "../report/i18n.js";
+import { t } from "../report/i18n.js";
 const gitVerifyClean = async (workdir: string): Promise<boolean> => {
   const res = await execa("git", ["-C", workdir, "diff", "--exit-code"], { reject: false });
   return res.exitCode === 0;
@@ -45,18 +46,18 @@ export async function runReview(
     gates.some(g => g.verdict === "needs-human") ? "needs-human"
     : gates.some(g => g.verdict === "fail") ? "fail" : "pass";
   const downgraded =
-    g2.subReason === "no-flow" ? "Gate 2 abstained (flow not synthesized)"
-    : g2.subReason === "no-baseline" ? "Gate 2: no architecture baseline (diagram is comprehension-only)"
-    : "none";
+    g2.subReason === "no-flow" ? t(lang, "dne.gate2NoFlow")
+    : g2.subReason === "no-baseline" ? t(lang, "dne.gate2NoBaseline")
+    : t(lang, "common.none");
   const markdown = assembleArtifact({
     changesetId: "discount@fixture", mode: ctx.mode, tier, gates, lang,
     synthesis: { verdict: synthesisVerdict,
-      humanMustVerify: unguarded.length ? [`is leaving these untested acceptable? ${unguarded.join(", ")}`] : ["confirm intent"] },
+      humanMustVerify: unguarded.length ? [`${t(lang, "synth.leaveUntested")} ${unguarded.join(", ")}`] : [t(lang, "synth.confirmIntent")] },
     doesNotEstablish: {
-      sharedBlindSpot: "inputs neither author nor reviewer considered (e.g. negative price/percent)",
+      sharedBlindSpot: t(lang, "dne.sharedBlindSpotText"),
       downgradedGates: downgraded,
-      unguardedCriteria: unguarded.length ? unguarded.join(", ") : "none",
-      regressionBasis: String(g4.evidence["selection-basis"]),
+      unguardedCriteria: unguarded.length ? unguarded.join(", ") : t(lang, "common.none"),
+      regressionBasis: String(g4.evidence["selection-basis"]) === "full suite" ? t(lang, "regression.fullSuite") : String(g4.evidence["selection-basis"]),
     },
   });
   return { tier, gates, markdown, graph: g2.evidence.graph as FlowGraph | undefined, overlay: g2.evidence.overlay as FlowOverlay | undefined };
