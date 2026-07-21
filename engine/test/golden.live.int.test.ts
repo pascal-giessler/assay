@@ -4,7 +4,7 @@ import { runReview } from "../src/core/driver";
 import { DockerSandbox } from "../src/sandbox/docker";
 import { HeadlessClaudeRunner } from "../src/judgment/headless";
 import { PythonSourceMutator, PytestRunner } from "../src/faultinject/python";
-const on = process.env.RUN_INT === "1" && process.env.ANTHROPIC_API_KEY;
+const on = process.env.RUN_INT === "1" && (process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_CODE_OAUTH_TOKEN);
 (on ? describe : describe.skip)("live golden (Docker + claude -p)", () => {
   it("surfaces the unguarded 50% cap on the real fixture", async () => {
     const workdir = new URL("../../docs/superpowers/methodology/fixtures/discount", import.meta.url).pathname;
@@ -16,5 +16,8 @@ const on = process.env.RUN_INT === "1" && process.env.ANTHROPIC_API_KEY;
     });
     expect(gates.find(g => g.gate === 3)!.verdict).toBe("needs-human");
     expect(markdown).toMatch(/caps at 50%/i);
+    // Gate 2 should now carry a synthesized flow graph.
+    const g2 = gates.find(g => g.gate === 2)!;
+    expect(g2.evidence.graph ? (g2.evidence.graph as { nodes: unknown[] }).nodes.length : 0).toBeGreaterThan(0);
   }, 120_000);
 });
