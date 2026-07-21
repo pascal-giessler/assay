@@ -26,4 +26,18 @@ describe("renderReport", () => {
   it("renders the localized not-synthesized note when no graph", () => {
     expect(renderReport(md, { lang: "de" })).toMatch(/Ablauf nicht erzeugt/);
   });
+  it("neutralizes script/attribute injection from model-controlled graph fields", () => {
+    const evilId = 'n"1</script><script>bad()</script>';
+    const evil: FlowGraph = {
+      nodes: [{ id: evilId, label: "</script><img src=x onerror=bad()>", kind: "entry" }],
+      edges: [],
+    };
+    const overlay: FlowOverlay = { [evilId]: { status: "unanalyzed", tests: [] } };
+    const out = renderReport(md, { lang: "en", graph: evil, overlay });
+    const afterData = out.split('id="flow-data">')[1];
+    const dataBlock = afterData.slice(0, afterData.indexOf("</script>"));
+    expect(dataBlock).not.toContain("</script");      // JSON block cannot break out
+    expect(out).not.toContain('data-node="n"1');       // no attribute breakout server-side
+    expect(out).not.toContain("</script><img");        // raw label markup never emitted
+  });
 });

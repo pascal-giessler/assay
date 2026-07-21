@@ -2,7 +2,7 @@ import { DAGRE_UMD } from "./vendor/dagre.inline.js";
 import { t, type Lang } from "./i18n.js";
 import type { FlowGraph, FlowOverlay } from "../judgment/runner.js";
 
-const escape = (s: string) => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
+const escape = (s: string) => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 const badge = (s: string) =>
   s.replace(/\b(pass|fail|needs-human|abstain)\b/g, m => `<span class="v v-${m}">${m}</span>`);
 
@@ -24,7 +24,7 @@ function diagramBlock(graph: FlowGraph, overlay: FlowOverlay, lang: Lang): strin
       guardedBy: t(lang, "panel.guardedBy"), noTest: t(lang, "panel.noTest"),
       guarded: t(lang, "status.guarded"), unguarded: t(lang, "status.unguarded"), unanalyzed: t(lang, "status.unanalyzed"),
     },
-  });
+  }).replace(/</g, "\\u003c");
   const legend = (["guarded", "unguarded", "unanalyzed"] as const)
     .map(s => `<span class="chip c-${s}">${escape(t(lang, `status.${s}`))}</span>`).join("");
   return `<figure class="flow-wrap">
@@ -69,8 +69,8 @@ const CLIENT = `(function(){
   var W=g.graph().width||200,H=g.graph().height||120,svg='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img">';
   g.edges().forEach(function(ed){var pts=g.edge(ed).points;svg+='<polyline class="edge" points="'+pts.map(function(p){return p.x+','+p.y;}).join(' ')+'"/>';});
   g.nodes().forEach(function(id){var n=g.node(id),s=(d.overlay[id]||{}).status||'unanalyzed';
-    svg+='<g class="node" tabindex="0" data-node="'+id+'" data-status="'+s+'" transform="translate('+(n.x-n.w/2)+','+(n.y-n.h/2)+')">'
-      +'<rect rx="8" width="'+n.w+'" height="'+n.h+'" class="n-'+s+'"/>'
+    svg+='<g class="node" tabindex="0" data-node="'+esc(id)+'" data-status="'+esc(s)+'" transform="translate('+(n.x-n.w/2)+','+(n.y-n.h/2)+')">'
+      +'<rect rx="8" width="'+n.w+'" height="'+n.h+'" class="n-'+esc(s)+'"/>'
       +'<text x="'+(n.w/2)+'" y="'+(n.h/2+4)+'" text-anchor="middle">'+esc(n.n.label)+'</text></g>';});
   svg+='</svg>';
   document.getElementById('flow').innerHTML=svg;
@@ -78,11 +78,11 @@ const CLIENT = `(function(){
   function show(id){var n=byId(id),o=d.overlay[id]||{status:'unanalyzed',tests:[]},L=d.i18n;
     var lines=['<strong>'+esc(n.label)+'</strong>'];
     if(n.sourceLine)lines.push(L.sourceLine+': '+n.sourceLine);
-    lines.push(L.status+': '+(L[o.status]||o.status));
+    lines.push(L.status+': '+esc(L[o.status]||o.status));
     lines.push(L.guardedBy+': '+((o.tests&&o.tests.length)?o.tests.map(esc).join(', '):L.noTest));
     panel.innerHTML=lines.join('<br>');panel.hidden=false;}
   function byId(id){return d.graph.nodes.filter(function(n){return n.id===id;})[0];}
-  function esc(s){return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   Array.prototype.forEach.call(document.querySelectorAll('.node'),function(g){
     g.addEventListener('click',function(){show(g.getAttribute('data-node'));});
     g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();show(g.getAttribute('data-node'));}});
