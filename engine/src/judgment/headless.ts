@@ -4,9 +4,18 @@ export class HeadlessClaudeRunner implements JudgmentRunner {
   constructor(private sandbox: Sandbox, private opts: { image: string; apiKeyEnv?: string } = { image: "" }) {}
   async intent(req: JudgmentRequest): Promise<IntentResult> {
     const payload = `${req.prompt}\n\n=== EVIDENCE BUNDLE ===\nREQUIREMENT:\n${req.bundle.requirement ?? "(none — inference mode)"}\n\nDIFF:\n${req.bundle.diff}\n\nTEST RESULTS:\n${req.bundle.testResults}\n`;
+    // Forward whichever model credential the host holds. A Console API key
+    // travels as ANTHROPIC_API_KEY; a Claude Code OAuth token (from
+    // `claude setup-token`, prefix sk-ant-oat) travels as
+    // CLAUDE_CODE_OAUTH_TOKEN. These are NOT interchangeable — sending an
+    // OAuth token as ANTHROPIC_API_KEY makes the API reject it with 401
+    // "Invalid API key". Forward each only under its own name.
     const env: Record<string, string> = {};
-    const key = this.opts.apiKeyEnv ?? "ANTHROPIC_API_KEY";
-    if (process.env[key]) env[key] = process.env[key] as string;
+    const credVars = [this.opts.apiKeyEnv, "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"]
+      .filter((v): v is string => Boolean(v));
+    for (const k of credVars) {
+      if (process.env[k]) env[k] = process.env[k] as string;
+    }
     const res = await this.sandbox.run({
       command: ["claude", "-p", payload, "--output-format", "json"],
       env, network: true, // judgment needs the model API
