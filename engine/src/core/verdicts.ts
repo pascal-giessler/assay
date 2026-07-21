@@ -7,7 +7,7 @@ export type Tier = (typeof TIERS)[number];
 export type GateResult = {
   gate: 1 | 2 | 3 | 4;
   verdict: Verdict;
-  subReason?: "no-baseline";
+  subReason?: "no-baseline" | "no-flow";
   evidence: Record<string, unknown>;
 };
 

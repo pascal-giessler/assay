@@ -29,4 +29,21 @@ describe("parseClaudeResult", () => {
   it("throws a clear error on empty output instead of a JSON parse crash", () => {
     expect(() => parseClaudeResult("", "boom", 1)).toThrow(/produced no output/);
   });
+
+  it("parses and validates a flow graph in the result", () => {
+    const withFlow = { ...intent, flow: {
+      nodes: [{ id: "n1", label: "entry", kind: "entry" }, { id: "n2", label: "cap", kind: "branch", criterion: "caps at 50%" }],
+      edges: [{ from: "n1", to: "n2" }],
+    } };
+    const envelope = JSON.stringify({ type: "result", is_error: false, result: JSON.stringify(withFlow) });
+    const out = parseClaudeResult(envelope);
+    expect(out.flow?.nodes).toHaveLength(2);
+    expect(out.flow?.nodes[1].criterion).toBe("caps at 50%");
+  });
+
+  it("drops an invalid flow (edge referencing a missing node) without throwing", () => {
+    const bad = { ...intent, flow: { nodes: [{ id: "n1", label: "e", kind: "entry" }], edges: [{ from: "n1", to: "ghost" }] } };
+    const envelope = JSON.stringify({ type: "result", is_error: false, result: JSON.stringify(bad) });
+    expect(parseClaudeResult(envelope).flow).toBeUndefined();
+  });
 });
