@@ -4,19 +4,27 @@ import { createServer } from "node:http";
 import { extname, resolve } from "node:path";
 import type { ChangesetContext } from "../core/changeset.js";
 import type { GateResult, Tier } from "../core/verdicts.js";
+import type { FlowGraph, FlowOverlay } from "../judgment/runner.js";
+import { type Lang } from "../report/i18n.js";
 
 export type PrRef = { range: string; requirement: string | null; title: string };
 
 export type CliDeps = {
   loadChangeset: (o: { range: string; workdir: string; testCmd: string; requirement: string | null }) => Promise<ChangesetContext>;
-  runReview: (ctx: ChangesetContext) => Promise<{ tier: Tier; gates: GateResult[]; markdown: string }>;
-  renderReport: (md: string, title?: string) => string;
+  runReview: (ctx: ChangesetContext, lang: Lang) => Promise<{ tier: Tier; gates: GateResult[]; markdown: string; graph?: FlowGraph; overlay?: FlowOverlay }>;
+  renderReport: (md: string, opts: { title?: string; lang?: Lang; graph?: FlowGraph; overlay?: FlowOverlay }) => string;
   writeOut: (path: string | undefined, content: string) => void;
   serve: (o: { report?: string; port?: number }) => Promise<void>;
   // Resolve an open GitHub PR to a diff range + requirement. Optional so the
   // base review command stays testable without gh; the `pr` command requires it.
   resolvePr?: (o: { number: string; workdir: string; base?: string }) => Promise<PrRef>;
 };
+
+function parseLang(v: string | undefined): Lang {
+  if (v === undefined || v === "en") return "en";
+  if (v === "de") return "de";
+  throw new Error(`--lang must be "en" or "de", got "${v}"`);
+}
 
 export function buildProgram(deps: CliDeps): Command {
   const program = new Command();
@@ -36,13 +44,17 @@ export function buildProgram(deps: CliDeps): Command {
     .option("--base <ref>", "base ref to diff against (default: the PR base branch)")
     .option("--format <fmt>", "md|html", "md")
     .option("--out <path>")
+    .option("--lang <lang>", "report language: en|de", "en")
     .action(async (number, o) => {
       if (!deps.resolvePr) throw new Error("pr review is not available: resolvePr dependency is not wired");
       const workdir = resolve(o.workdir);
+      const lang = parseLang(o.lang);
       const { range, requirement, title } = await deps.resolvePr({ number, workdir, base: o.base });
       const ctx = await deps.loadChangeset({ range, workdir, testCmd: o.testCmd, requirement });
-      const { markdown } = await deps.runReview(ctx);
-      const content = o.format === "html" ? deps.renderReport(markdown, `Review — ${title}`) : markdown;
+      const res = await deps.runReview(ctx, lang);
+      const content = o.format === "html"
+        ? deps.renderReport(res.markdown, { title: `Review — ${title}`, lang, graph: res.graph, overlay: res.overlay })
+        : res.markdown;
       deps.writeOut(o.out, content);
     });
 
@@ -52,12 +64,16 @@ export function buildProgram(deps: CliDeps): Command {
     .option("--workdir <dir>", "workdir", ".")
     .option("--format <fmt>", "md|html", "md")
     .option("--out <path>")
+    .option("--lang <lang>", "report language: en|de", "en")
     .action(async (range, o) => {
       if (!range) return;
       const workdir = resolve(o.workdir);
+      const lang = parseLang(o.lang);
       const ctx = await deps.loadChangeset({ range, workdir, testCmd: o.testCmd, requirement: o.spec ?? null });
-      const { markdown } = await deps.runReview(ctx);
-      const content = o.format === "html" ? deps.renderReport(markdown, "Review Report") : markdown;
+      const res = await deps.runReview(ctx, lang);
+      const content = o.format === "html"
+        ? deps.renderReport(res.markdown, { title: "Review Report", lang, graph: res.graph, overlay: res.overlay })
+        : res.markdown;
       deps.writeOut(o.out, content);
     });
 
@@ -130,7 +146,7 @@ async function main(): Promise<void> {
 
   const deps: CliDeps = {
     loadChangeset: (o) => loadChangeset({ range: o.range, workdir: o.workdir, testCmd: o.testCmd, requirement: o.requirement }),
-    runReview: (ctx) => runReview(ctx, { runner, mutator, testRunner, sandbox }),
+    runReview: (ctx, lang) => runReview(ctx, { runner, mutator, testRunner, sandbox }, { lang }),
     renderReport,
     writeOut: defaultWriteOut,
     serve: defaultServe,
