@@ -100,6 +100,24 @@ Environment:
 | `REVIEW_SANDBOX_IMAGE` | sandbox image to use (default `review-engine-python:latest`) |
 | `ANTHROPIC_API_KEY` | forwarded into the Gate 1 judgment call only |
 
+### Review an open GitHub pull request
+
+If you have the [`gh` CLI](https://cli.github.com/) and a local checkout of the
+target repo, `assay pr <number>` fetches the PR, diffs it from its merge-base, and
+uses the PR description as the requirement (spec mode):
+
+```bash
+cd /path/to/target/repo          # a clone of the repo the PR targets
+export ANTHROPIC_API_KEY=sk-ant-...
+assay pr 248 \
+  --test-cmd "python -m pytest -q" \
+  --format html --out review.html
+```
+
+`--base <ref>` overrides the branch to diff against; `--workdir`, `--format`, and
+`--out` behave as above. Under the hood it runs `gh pr checkout`, reads the PR's
+base branch / title / body, and reviews only the PR's own changes.
+
 View a generated HTML report locally:
 
 ```bash

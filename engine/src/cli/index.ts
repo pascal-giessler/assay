@@ -5,12 +5,17 @@ import { extname } from "node:path";
 import type { ChangesetContext } from "../core/changeset";
 import type { GateResult, Tier } from "../core/verdicts";
 
+export type PrRef = { range: string; requirement: string | null; title: string };
+
 export type CliDeps = {
   loadChangeset: (o: { range: string; workdir: string; testCmd: string; requirement: string | null }) => Promise<ChangesetContext>;
   runReview: (ctx: ChangesetContext) => Promise<{ tier: Tier; gates: GateResult[]; markdown: string }>;
   renderReport: (md: string, title?: string) => string;
   writeOut: (path: string | undefined, content: string) => void;
   serve: (o: { report?: string; port?: number }) => Promise<void>;
+  // Resolve an open GitHub PR to a diff range + requirement. Optional so the
+  // base review command stays testable without gh; the `pr` command requires it.
+  resolvePr?: (o: { number: string; workdir: string; base?: string }) => Promise<PrRef>;
 };
 
 export function buildProgram(deps: CliDeps): Command {
@@ -22,6 +27,22 @@ export function buildProgram(deps: CliDeps): Command {
     .option("--port <n>", "port", "8080")
     .action(async (o) => {
       await deps.serve({ report: o.report, port: Number(o.port) });
+    });
+
+  program.command("pr <number>")
+    .description("review an open GitHub pull request (requires the gh CLI)")
+    .option("--test-cmd <cmd>", "test command", "python -m pytest -q")
+    .option("--workdir <dir>", "a local checkout of the target repo", ".")
+    .option("--base <ref>", "base ref to diff against (default: the PR base branch)")
+    .option("--format <fmt>", "md|html", "md")
+    .option("--out <path>")
+    .action(async (number, o) => {
+      if (!deps.resolvePr) throw new Error("pr review is not available: resolvePr dependency is not wired");
+      const { range, requirement, title } = await deps.resolvePr({ number, workdir: o.workdir, base: o.base });
+      const ctx = await deps.loadChangeset({ range, workdir: o.workdir, testCmd: o.testCmd, requirement });
+      const { markdown } = await deps.runReview(ctx);
+      const content = o.format === "html" ? deps.renderReport(markdown, `Review — ${title}`) : markdown;
+      deps.writeOut(o.out, content);
     });
 
   program.argument("[range]")
@@ -44,6 +65,23 @@ export function buildProgram(deps: CliDeps): Command {
 export function defaultWriteOut(path: string | undefined, content: string): void {
   if (path) writeFileSync(path, content);
   else process.stdout.write(content + "\n");
+}
+
+// Resolve an open GitHub PR to a review range using the gh CLI. Checks out the
+// PR head into the workdir, reads its base branch / title / body, and diffs from
+// the merge-base so only the PR's own changes are reviewed. The PR body becomes
+// the requirement (spec mode) when non-empty.
+export async function defaultResolvePr(o: { number: string; workdir: string; base?: string }): Promise<PrRef> {
+  const { execa } = await import("execa");
+  const cwd = o.workdir;
+  await execa("gh", ["pr", "checkout", o.number], { cwd });
+  const { stdout } = await execa("gh", ["pr", "view", o.number, "--json", "baseRefName,title,body"], { cwd });
+  const meta = JSON.parse(stdout) as { baseRefName: string; title: string; body: string };
+  const base = o.base ?? `origin/${meta.baseRefName}`;
+  const mb = await execa("git", ["-C", cwd, "merge-base", base, "HEAD"], { reject: false });
+  const baseRef = mb.exitCode === 0 && mb.stdout.trim() ? mb.stdout.trim() : base;
+  const requirement = meta.body && meta.body.trim() ? meta.body : null;
+  return { range: `${baseRef}..HEAD`, requirement, title: meta.title };
 }
 
 const MIME: Record<string, string> = {
@@ -94,6 +132,7 @@ async function main(): Promise<void> {
     renderReport,
     writeOut: defaultWriteOut,
     serve: defaultServe,
+    resolvePr: defaultResolvePr,
   };
 
   const program = buildProgram(deps);
