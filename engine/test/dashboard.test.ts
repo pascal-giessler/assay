@@ -26,7 +26,10 @@ describe("renderDashboard", () => {
     expect(html).toMatch(/^<!doctype html>/);
     expect(html).toContain("--bg:#14130f");
     expect(html).toContain("--unguarded:#d16a5a");
-    expect(html).not.toMatch(/https?:\/\//);
+    // Self-contained: no external *loadable* refs (dagre is inlined). A bare
+    // /https?:/ check false-matches an inert comment URL inside the vendored
+    // dagre blob, so assert absence of loaders specifically.
+    expect(html).not.toMatch(/<script\s+src=|href=["']https?:|<link[\s>]|fetch\(|XMLHttpRequest/);
   });
   it("renders the four gates as an ordered rail and the overall verdict", () => {
     const html = renderDashboard(doc);
