@@ -34,4 +34,19 @@ describe("renderOutline", () => {
   it("localizes markers in German", () => {
     expect(renderOutline(flow, buildOverlay(flow, guarding), "de")).toMatch(/\[ungesichert\]/);
   });
+  it("terminates on a cyclic graph and lists every node once (flat fallback)", () => {
+    const cyclic: FlowGraph = {
+      nodes: [
+        { id: "a", label: "loop head", kind: "branch" },
+        { id: "b", label: "loop body", kind: "state" },
+      ],
+      edges: [{ from: "a", to: "b" }, { from: "b", to: "a" }],
+    };
+    const out = renderOutline(cyclic, buildOverlay(cyclic, []), "en");
+    // No indegree-0 root exists -> nodes are reached via the flat fallback; the
+    // seen-set must stop the a->b->a cycle so each node appears exactly once.
+    expect(out.match(/loop head/g)).toHaveLength(1);
+    expect(out.match(/loop body/g)).toHaveLength(1);
+    expect(out).toMatch(/\[unanalyzed\]/);
+  });
 });
