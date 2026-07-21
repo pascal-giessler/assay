@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { intentGate } from "../src/gates/intent";
 import { StubJudgmentRunner } from "../src/judgment/runner";
 import type { ChangesetContext } from "../src/core/changeset";
+import type { JudgmentRunner, IntentResult } from "../src/judgment/runner";
 const base: ChangesetContext = { diff: "d", requirement: "apply pct, cap 50", testCmd: "pytest", workdir: "/w", mode: "spec" };
 describe("intentGate", () => {
   it("spec mode: pass when all criteria met, and surfaces mutations", async () => {
@@ -21,5 +22,17 @@ describe("intentGate", () => {
     const { result } = await intentGate({ ...base, requirement: null, mode: "inference" }, runner);
     expect(result.verdict).toBe("needs-human");
     expect(result.evidence["inferred-intent"]).toBeDefined();
+  });
+  it("requests a flow and adds a German instruction for lang=de", async () => {
+    let seenPrompt = "";
+    const runner: JudgmentRunner = { async intent(req) { seenPrompt = req.prompt; return {
+      reconstruction: "x", criterionTable: [{ criterion: "c", status: "met" }], mutations: [],
+      flow: { nodes: [{ id: "n1", label: "e", kind: "entry" }], edges: [] },
+    } as IntentResult; } };
+    const ctx = { diff: "d", requirement: "r", testCmd: "t", workdir: "/w", mode: "spec" as const };
+    const out = await intentGate(ctx, runner, "de");
+    expect(seenPrompt).toMatch(/flow/i);
+    expect(seenPrompt).toMatch(/German/);
+    expect(out.flow?.nodes).toHaveLength(1);
   });
 });
