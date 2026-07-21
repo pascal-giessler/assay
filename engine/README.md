@@ -1,8 +1,13 @@
-# review-engine
+# Assay
 
-An automated code-review engine that runs an abstract, four-gate review
+**Independent review that proves your tests.**
+
+Assay is an automated code-review engine that runs an abstract, four-gate review
 methodology against a changeset and produces a review artifact (markdown) plus
-a self-contained HTML report. It is the tooling implementation of the
+a self-contained HTML report. Its signature move: an *assay* determines how much
+real precious metal is in ore that looks valuable on the surface — Assay breaks
+your code and watches whether a test actually goes red, revealing how much of a
+green suite's "coverage" is real. It is the tooling implementation of the
 methodology in [`../docs/superpowers/methodology/`](../docs/superpowers/methodology/)
 and the spec in
 [`../docs/superpowers/specs/2026-07-20-review-engine-vertical-slice-design.md`](../docs/superpowers/specs/2026-07-20-review-engine-vertical-slice-design.md).
@@ -45,7 +50,11 @@ result unless the working tree is byte-identical after fault injection.
 cd engine
 npm install
 npm run build          # compiles TypeScript to dist/ (bin: dist/cli/index.js)
+npm link               # optional: puts the `assay` command on your PATH
 ```
+
+Without `npm link`, invoke the CLI as `node dist/cli/index.js` in place of
+`assay` in the examples below.
 
 ### Build the sandbox image
 
@@ -65,7 +74,7 @@ you build or tag it differently.
 Run a review over a git range in a target repo:
 
 ```bash
-node dist/cli/index.js <base>..<head> \
+assay <base>..<head> \
   --workdir /path/to/target/repo \
   --test-cmd "python -m pytest -q" \
   --spec requirement.txt \
@@ -94,7 +103,7 @@ Environment:
 View a generated HTML report locally:
 
 ```bash
-node dist/cli/index.js serve --report review.html --port 8080
+assay serve --report review.html --port 8080
 ```
 
 ## Testing

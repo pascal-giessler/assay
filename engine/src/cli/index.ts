@@ -15,7 +15,7 @@ export type CliDeps = {
 
 export function buildProgram(deps: CliDeps): Command {
   const program = new Command();
-  program.name("review");
+  program.name("assay");
 
   program.command("serve")
     .option("--report <path>")
