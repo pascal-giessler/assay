@@ -19,6 +19,14 @@ describe("golden discount review (deterministic)", () => {
         { criterion: "applies percentage", file: "discount.py", find: "capped / 100", replace: "capped / 50" },
         { criterion: "caps at 50%", file: "discount.py", find: " if percent <= 50 else 50", replace: "" },
       ],
+      flow: {
+        nodes: [
+          { id: "n1", label: "apply_discount", kind: "entry" },
+          { id: "n2", label: "percent <= 50 ?", kind: "branch", criterion: "applies percentage" },
+          { id: "n3", label: "capped = 50", kind: "state", criterion: "caps at 50%" },
+        ],
+        edges: [{ from: "n1", to: "n2" }, { from: "n2", to: "n3" }],
+      },
     });
     let cur = "";
     const mutator: Mutator = { async apply(m) { cur = m.find; return async () => {}; } };
@@ -31,11 +39,19 @@ describe("golden discount review (deterministic)", () => {
       verifyClean: async () => true });
     expect(markdown).toMatch(/Risk tier.*Tier 2/i);
     expect(markdown).toMatch(/Gate 1[\s\S]*verdict.*pass/i);
-    expect(markdown).toMatch(/Gate 2[\s\S]*abstain[\s\S]*no-baseline/i);
+    expect(markdown).toMatch(/Gate 2[\s\S]*needs-human[\s\S]*no-baseline/i);
+    expect(markdown).toMatch(/flow:[\s\S]*capped = 50  \[unguarded\]/i);
     expect(markdown).toMatch(/Gate 3[\s\S]*needs-human/i);
     expect(markdown).toMatch(/unguarded-paths[\s\S]*caps at 50%/i);
     expect(markdown).toMatch(/Gate 4[\s\S]*verdict.*pass/i);
     expect(markdown).toMatch(/What this review does NOT establish/i);
     expect(markdown).toMatch(/shared-blind-spot/i);
+
+    const de = await runReview(ctx, { runner, mutator, testRunner,
+      sandbox: new StubSandbox(() => ({ stdout: "2 passed", stderr: "", exitCode: 0 })),
+      verifyClean: async () => true }, { lang: "de" });
+    expect(de.markdown).toMatch(/Architekturkonformität/);
+    expect(de.markdown).toMatch(/\[ungesichert\]/);
+    expect(de.overlay?.n3.status).toBe("unguarded");
   });
 });

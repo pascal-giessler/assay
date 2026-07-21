@@ -45,4 +45,20 @@ describe("runReview", () => {
       verifyClean: async () => false }))
       .rejects.toThrow(/workdir not restored to a clean state/);
   });
+
+  it("returns Gate 2 graph/overlay and overlays g3 guarding, honoring lang", async () => {
+    const runner = new StubJudgmentRunner({
+      reconstruction: "r", criterionTable: [{ criterion: "caps at 50%", status: "met" }],
+      mutations: [{ criterion: "caps at 50%", file: "d.py", find: "x", replace: "" }],
+      flow: { nodes: [{ id: "n1", label: "cap", kind: "branch", criterion: "caps at 50%" }], edges: [] },
+    });
+    const ctx = { diff: "d", requirement: "r", testCmd: "t", workdir: "/w", mode: "spec" as const };
+    const mutator = { async apply() { return async () => {}; } };
+    const testRunner = { async run() { return { passed: true, failedTests: [], raw: "2 passed" }; } };
+    const res = await runReview(ctx, { runner, mutator, testRunner,
+      sandbox: new StubSandbox(() => ({ stdout: "2 passed", stderr: "", exitCode: 0 })),
+      verifyClean: async () => true }, { lang: "de" });
+    expect(res.overlay?.n1.status).toBe("unguarded"); // mutation left suite green
+    expect(res.markdown).toMatch(/Architekturkonformität/);
+  });
 });
