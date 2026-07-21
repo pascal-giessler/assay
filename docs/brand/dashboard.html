@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assay — Review Dashboard</title>
+</head>
+<body>
+<style>
+  :root {
+    --bg: #14130f; --surface: #1c1b16; --surface-2: #24221b;
+    --line: #3a3730; --line-soft: #2b2922;
+    --ink: #efece3; --ink-dim: #a8a496; --ink-faint: #6f6c60;
+    --gold: #c8a24a; --gold-dim: #8a7333;
+    --pass: #6fbf88; --fail: #d8705f; --human: #e6ab3f; --abstain: #828c99;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, monospace;
+    color-scheme: dark;
+  }
+  .title { text-wrap: balance; }
+  .assay { font-variant-numeric: tabular-nums; }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .assay { background: var(--bg); color: var(--ink); font-family: var(--sans);
+    line-height: 1.5; min-height: 100dvh; -webkit-font-smoothing: antialiased;
+    padding: 0 clamp(16px, 5vw, 56px); }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  /* ---- top bar ---- */
+  .topbar { display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 0; border-bottom: 1px solid var(--line-soft); }
+  .brand { display: flex; align-items: center; gap: 11px; }
+  .brand svg { display: block; }
+  .brand .word { font-weight: 620; letter-spacing: .14em; text-transform: uppercase;
+    font-size: 15px; }
+  .brand .word b { color: var(--gold); font-weight: 620; }
+  .topmeta { font-family: var(--mono); font-size: 12px; color: var(--ink-faint);
+    letter-spacing: .02em; }
+
+  /* ---- review header ---- */
+  .head { padding: 40px 0 30px; display: grid; gap: 26px;
+    grid-template-columns: minmax(0,1fr) auto; align-items: start; }
+  .repo { font-family: var(--mono); font-size: 12.5px; color: var(--ink-dim);
+    letter-spacing: .01em; }
+  .repo .sha { color: var(--gold-dim); }
+  h1.title { font-size: clamp(26px, 3.6vw, 40px); line-height: 1.06;
+    letter-spacing: -.02em; font-weight: 640; margin: 12px 0 0; max-width: 20ch; }
+  .modeline { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px 18px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
+  .modeline b { color: var(--ink-dim); font-weight: 500; }
+
+  .tierbox { text-align: right; }
+  .tier { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--mono);
+    border: 1px solid var(--fail); color: var(--fail); border-radius: 3px;
+    padding: 7px 12px; letter-spacing: .06em; font-size: 12px; text-transform: uppercase; }
+  .tier b { font-size: 15px; letter-spacing: .04em; }
+  .tier .reasons { margin-top: 10px; }
+  .reasons { display: flex; flex-direction: column; gap: 4px; margin-top: 12px;
+    font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint);
+    text-transform: none; letter-spacing: 0; text-align: right; }
+
+  /* ---- verdict banner ---- */
+  .banner { display: grid; grid-template-columns: auto 1px 1fr; gap: 24px;
+    align-items: center; padding: 20px 22px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 6px; }
+  .overall { display: flex; align-items: center; gap: 12px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--human);
+    box-shadow: 0 0 0 0 rgba(230,171,63,.5); animation: breathe 2.6s ease-out infinite; }
+  @keyframes breathe { 0% { box-shadow: 0 0 0 0 rgba(230,171,63,.45); }
+    70% { box-shadow: 0 0 0 7px rgba(230,171,63,0); } 100% { box-shadow: 0 0 0 0 rgba(230,171,63,0); } }
+  .overall .v { font-family: var(--mono); font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; font-size: 15px; color: var(--human); }
+  .overall .sub { font-size: 11px; color: var(--ink-faint); font-family: var(--mono);
+    text-transform: uppercase; letter-spacing: .1em; margin-top: 2px; }
+  .vsep { background: var(--line); align-self: stretch; }
+  .decide .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--gold); }
+  .decide .q { margin-top: 5px; font-size: 16px; color: var(--ink); font-weight: 500;
+    letter-spacing: -.01em; }
+
+  /* ---- gate rail ---- */
+  .gates { margin: 40px 0 8px; }
+  .glabel { font-family: var(--mono); font-size: 11px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px; }
+  .gate { display: grid; grid-template-columns: 42px 1fr; gap: 0 20px;
+    padding: 22px 0; border-top: 1px solid var(--line-soft); position: relative;
+    opacity: 0; transform: translateY(8px); animation: rise .5s cubic-bezier(.16,1,.3,1) forwards; }
+  .gate:nth-child(2){animation-delay:.04s}.gate:nth-child(3){animation-delay:.10s}
+  .gate:nth-child(4){animation-delay:.16s}.gate:nth-child(5){animation-delay:.22s}
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .node { grid-row: 1 / 99; display: flex; flex-direction: column; align-items: center; }
+  .node .n { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line);
+    display: grid; place-items: center; font-family: var(--mono); font-size: 13px;
+    color: var(--ink-dim); background: var(--bg); }
+  .node .stem { width: 1px; flex: 1; background: var(--line-soft); margin-top: 6px; }
+  .gate:last-child .node .stem { display: none; }
+  .grow { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+  .gname { font-size: 16.5px; font-weight: 560; letter-spacing: -.01em; }
+  .gname small { color: var(--ink-faint); font-weight: 400; font-size: 12.5px;
+    font-family: var(--mono); margin-left: 8px; letter-spacing: 0; }
+  .chip { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; padding: 4px 9px; border-radius: 3px; white-space: nowrap;
+    border: 1px solid currentColor; }
+  .chip.pass { color: var(--pass); } .chip.human { color: var(--human); }
+  .chip.abstain { color: var(--abstain); } .chip.fail { color: var(--fail); }
+  .gsum { color: var(--ink-dim); font-size: 14px; margin-top: 7px; max-width: 68ch; }
+  .gsum code, .mono { font-family: var(--mono); font-size: 12.5px; color: var(--ink);
+    background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+
+  /* evidence */
+  details { margin-top: 14px; }
+  summary { list-style: none; cursor: pointer; font-family: var(--mono); font-size: 11px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint);
+    display: inline-flex; align-items: center; gap: 7px; user-select: none;
+    transition: color .2s; }
+  summary::-webkit-details-marker { display: none; }
+  summary:hover { color: var(--gold); }
+  summary .caret { transition: transform .2s ease; }
+  details[open] summary .caret { transform: rotate(90deg); }
+
+  table.ev { width: 100%; border-collapse: collapse; margin-top: 14px;
+    font-size: 13px; }
+  table.ev th { text-align: left; font-family: var(--mono); font-weight: 500;
+    font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--ink-faint); padding: 0 14px 9px 0; border-bottom: 1px solid var(--line); }
+  table.ev td { padding: 12px 14px 12px 0; border-bottom: 1px solid var(--line-soft);
+    vertical-align: top; color: var(--ink-dim); }
+  table.ev td.crit { color: var(--ink); font-weight: 460; }
+  table.ev .m { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); }
+  .tag { font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; }
+  .tag.guarded { color: var(--pass); } .tag.unguarded { color: var(--fail); }
+  tr.gap td { background: linear-gradient(90deg, rgba(216,112,95,.10), transparent 70%); }
+  tr.gap td.crit { box-shadow: inset 2px 0 0 var(--fail); }
+
+  .callout { margin-top: 16px; padding: 13px 16px; border: 1px solid var(--fail);
+    border-radius: 5px; background: rgba(216,112,95,.06); font-size: 13.5px; }
+  .callout .lab { font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--fail); }
+  .callout .body { margin-top: 5px; color: var(--ink); }
+  .callout .body b { font-family: var(--mono); color: var(--fail); font-weight: 600; }
+
+  /* ---- does-not-establish ---- */
+  .dne { margin: 34px 0 60px; border: 1px solid var(--gold-dim); border-radius: 7px;
+    overflow: hidden; }
+  .dne h2 { margin: 0; padding: 16px 22px; font-size: 14px; letter-spacing: .04em;
+    background: rgba(200,162,74,.08); border-bottom: 1px solid var(--gold-dim);
+    font-family: var(--mono); text-transform: uppercase; color: var(--gold); font-weight: 600; }
+  .dne ul { margin: 0; padding: 6px 0; list-style: none; }
+  .dne li { padding: 15px 22px; border-bottom: 1px solid var(--line-soft);
+    display: grid; grid-template-columns: 190px 1fr; gap: 22px; }
+  .dne li:last-child { border-bottom: none; }
+  .dne .k { font-family: var(--mono); font-size: 11.5px; color: var(--ink-dim);
+    letter-spacing: .02em; }
+  .dne .d { color: var(--ink-dim); font-size: 13.5px; max-width: 62ch; }
+  .dne .d b { color: var(--ink); font-weight: 500; }
+
+  footer { padding: 26px 0 48px; border-top: 1px solid var(--line-soft);
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-faint); letter-spacing: .02em; }
+  footer a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid var(--line); }
+  footer a:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  @media (max-width: 720px) {
+    .head { grid-template-columns: 1fr; } .tierbox { text-align: left; }
+    .reasons, .tier { text-align: left; }
+    .banner { grid-template-columns: 1fr; gap: 16px; }
+    .vsep { display: none; }
+    .dne li { grid-template-columns: 1fr; gap: 6px; }
+  }
+</style>
+
+<div class="assay">
+  <div class="wrap">
+
+    <div class="topbar">
+      <div class="brand">
+        <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="2.5" y="2.5" width="27" height="27" rx="4" fill="none" stroke="#c8a24a" stroke-width="1.5"/>
+          <path d="M16 8.5 L22.5 23 H19.2 L18 20 H14 L12.8 23 H9.5 Z M14.8 17.4 H17.2 L16 14.2 Z"
+                fill="#c8a24a"/>
+        </svg>
+        <span class="word">as<b>say</b></span>
+      </div>
+      <div class="topmeta">review · 2026-07-21 09:41 UTC</div>
+    </div>
+
+    <div class="head">
+      <div>
+        <div class="repo">checkout-service&nbsp;&middot;&nbsp;PR&nbsp;#248&nbsp;&middot;&nbsp;<span class="sha">a1f4c9e..7de2b03</span></div>
+        <h1 class="title">Apply tiered discount, capped at 50%</h1>
+        <div class="modeline">
+          <span>mode&nbsp; <b>spec</b></span>
+          <span>reviewer&nbsp; <b>independent · blind</b></span>
+          <span>suite&nbsp; <b>python -m pytest -q</b></span>
+          <span>sandbox&nbsp; <b>network-isolated</b></span>
+        </div>
+      </div>
+      <div class="tierbox">
+        <div class="tier"><span>tier</span><b>2</b><span>critical</span></div>
+        <div class="reasons">
+          <span>&#9642; guard / branch condition</span>
+          <span>&#9642; money / quantity arithmetic</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="banner">
+      <div class="overall">
+        <span class="dot"></span>
+        <div>
+          <div class="v">needs&#8209;human</div>
+          <div class="sub">overall verdict</div>
+        </div>
+      </div>
+      <div class="vsep"></div>
+      <div class="decide">
+        <div class="k">one decision for you</div>
+        <div class="q">Is leaving the 50% cap untested acceptable to merge?</div>
+      </div>
+    </div>
+
+    <div class="gates">
+      <div class="glabel">Gates &middot; run in sequence</div>
+
+      <!-- Gate 1 -->
+      <div class="gate">
+        <div class="node"><div class="n">1</div><div class="stem"></div></div>
+        <div>
+          <div class="grow">
+            <div class="gname">Intent Match <small>reconstructed blind</small></div>
+            <span class="chip pass">pass</span>
+          </div>
+          <div class="gsum">Behaviour reconstructed from the diff and tests alone, then checked against the requirement. Both acceptance criteria are met by code that is present.</div>
+          <details>
+            <summary><span class="caret">&rsaquo;</span> criterion-table</summary>
+            <table class="ev">
+              <thead><tr><th style="width:60%">Acceptance criterion</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td class="crit">Applies the given percentage discount</td><td><span class="tag guarded">met</span></td></tr>
+                <tr><td class="crit">Caps the discount at 50%</td><td><span class="tag guarded">met</span></td></tr>
+              </tbody>
+            </table>
+          </details>
+        </div>
+      </div>
+
+      <!-- Gate 2 -->
+      <div class="gate">
+        <div class="node"><div class="n">2</div><div class="stem"></div></div>
+        <div>
+          <div class="grow">
+            <div class="gname">Architecture Conformance</div>
+            <span class="chip abstain">abstain &middot; no-baseline</span>
+          </div>
+          <div class="gsum">No architecture reference was supplied, and surrounding code was deliberately not consulted to infer one. The single structural fact, a pure function with no cross-boundary calls, is recorded as unjudged rather than blessed.</div>
+        </div>
+      </div>
+
+      <!-- Gate 3 -->
+      <div class="gate">
+        <div class="node"><div class="n">3</div><div class="stem"></div></div>
+        <div>
+          <div class="grow">
+            <div class="gname">Test Adequacy <small>fault injection</small></div>
+            <span class="chip human">needs&#8209;human</span>
+          </div>
+          <div class="gsum">Each criterion was broken on purpose to see whether a test would catch it. A mutation that leaves the suite green is an <span class="mono">unguarded</span> behaviour: passing coverage that proves nothing.</div>
+          <details open>
+            <summary><span class="caret">&rsaquo;</span> guarding-test-table</summary>
+            <table class="ev">
+              <thead><tr><th style="width:42%">Criterion</th><th style="width:38%">Injected fault</th><th>Result</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="crit">Applies percentage</td>
+                  <td class="m">capped/100 &rarr; capped/50</td>
+                  <td><span class="tag guarded">guarded</span> <span class="m">&middot; test went red</span></td>
+                </tr>
+                <tr class="gap">
+                  <td class="crit">Caps at 50%</td>
+                  <td class="m">remove <code style="font-family:var(--mono)">else 50</code></td>
+                  <td><span class="tag unguarded">unguarded</span> <span class="m">&middot; suite stayed green</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </details>
+          <div class="callout">
+            <div class="lab">unguarded-paths</div>
+            <div class="body">The <b>50% cap</b> has no test that fails when it breaks. A regression here would ship past a green suite. Tier&nbsp;2 escalates this to a human.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gate 4 -->
+      <div class="gate">
+        <div class="node"><div class="n">4</div></div>
+        <div>
+          <div class="grow">
+            <div class="gname">Regression</div>
+            <span class="chip pass">pass</span>
+          </div>
+          <div class="gsum"><span class="mono">2 passed</span> &middot; selection-basis: <b class="mono" style="background:none;color:var(--ink-dim)">full suite</b>. The green signal is sound as far as the existing tests reach, which Gate&nbsp;3 has already qualified.</div>
+        </div>
+      </div>
+    </div>
+
+    <section class="dne">
+      <h2>What this review does not establish</h2>
+      <ul>
+        <li><span class="k">shared blind spot</span><span class="d">Inputs neither the author nor the reviewer considered, for example a <b>negative price or percentage</b>. Independence defeats rationalisation, not shared ignorance.</span></li>
+        <li><span class="k">downgraded gate</span><span class="d">Gate&nbsp;2 <b>abstained</b> with no architecture baseline. Structural fit was not verified, only left unjudged.</span></li>
+        <li><span class="k">unguarded criteria</span><span class="d">The <b>50% cap</b> is exercised by no failing test. Test adequacy for that behaviour is unproven.</span></li>
+        <li><span class="k">regression basis</span><span class="d">The green run is the <b>full existing suite</b>, which is only as complete as the tests that exist today.</span></li>
+      </ul>
+    </section>
+
+    <footer>
+      <span>Assay &middot; independent review that proves your tests</span>
+      <a href="https://github.com/pascal-giessler/assay">github.com/pascal-giessler/assay</a>
+    </footer>
+
+  </div>
+</div>
+
+</body>
+</html>
