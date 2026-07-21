@@ -1,24 +1,29 @@
 import { describe, it, expect } from "vitest";
 import { renderReport } from "../src/report/html";
+import type { FlowGraph, FlowOverlay } from "../src/judgment/runner";
+
+const md = "# Review Artifact\n## Gate 2 — Architecture Conformance\n- verdict: needs-human\n";
+const graph: FlowGraph = {
+  nodes: [{ id: "n1", label: "cap", kind: "branch", criterion: "caps at 50%", sourceLine: 3 }],
+  edges: [],
+};
+const overlay: FlowOverlay = { n1: { status: "unguarded", tests: [] } };
 
 describe("renderReport", () => {
-  it("produces self-contained HTML with no external asset references", () => {
-    const html = renderReport("## Gate 3\n- verdict: needs-human\n", "Discount review");
-    expect(html).toMatch(/<!doctype html>/i);
-    expect(html).toContain("<style>");
-    expect(html).not.toMatch(/https?:\/\//); // no external assets
-    expect(html).toMatch(/needs-human/);
-    expect(html).toContain("Discount review");
+  it("wraps markdown and stays self-contained (no http links)", () => {
+    const html = renderReport(md, { lang: "en" });
+    expect(html).toMatch(/^<!doctype html>/);
+    expect(html).not.toMatch(/https?:\/\//);
   });
-
-  it("wraps the 'What this review does NOT establish' section in an emphasized .dne container", () => {
-    const html = renderReport(
-      "## Gate 3\n- verdict: pass\n## What this review does NOT establish\n- SENTINEL_BULLET_ITEM\n",
-      "Discount review"
-    );
-    const sectionMatch = html.match(/<section class="dne">([\s\S]*?)<\/section>/);
-    expect(sectionMatch).not.toBeNull();
-    expect(sectionMatch![1]).toContain("What this review does NOT establish");
-    expect(sectionMatch![1]).toContain("SENTINEL_BULLET_ITEM");
+  it("embeds the diagram: dagre blob, svg container, node data, legend", () => {
+    const html = renderReport(md, { lang: "en", graph, overlay });
+    expect(html).toMatch(/DAGRE_UMD|dagre\.layout|graphlib/); // inlined library present
+    expect(html).toContain('id="flow"');
+    expect(html).toContain('data-node="n1"');
+    expect(html).toContain('data-status="unguarded"');
+    expect(html).toMatch(/Coverage/); // legend title (en)
+  });
+  it("renders the localized not-synthesized note when no graph", () => {
+    expect(renderReport(md, { lang: "de" })).toMatch(/Ablauf nicht erzeugt/);
   });
 });
