@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Mutator, Mutation, TestRunner, TestOutcome } from "./interfaces";
-import type { Sandbox } from "../sandbox/sandbox";
+import type { Mutator, Mutation, TestRunner, TestOutcome } from "./interfaces.js";
+import type { Sandbox } from "../sandbox/sandbox.js";
 export class PythonSourceMutator implements Mutator {
   async apply(m: Mutation, workdir: string): Promise<() => Promise<void>> {
     const path = join(workdir, m.file);

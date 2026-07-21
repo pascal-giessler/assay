@@ -1,15 +1,15 @@
 import { execa } from "execa";
-import type { ChangesetContext } from "./changeset";
-import type { GateResult, Tier, Verdict } from "./verdicts";
-import { triage } from "../gates/triage";
-import { intentGate } from "../gates/intent";
-import { architectureGate } from "../gates/architecture";
-import { faultInjectGate } from "../gates/faultInject";
-import { regressionGate } from "../gates/regression";
-import { assembleArtifact } from "./artifact";
-import type { JudgmentRunner } from "../judgment/runner";
-import type { Mutator, TestRunner } from "../faultinject/interfaces";
-import type { Sandbox } from "../sandbox/sandbox";
+import type { ChangesetContext } from "./changeset.js";
+import type { GateResult, Tier, Verdict } from "./verdicts.js";
+import { triage } from "../gates/triage.js";
+import { intentGate } from "../gates/intent.js";
+import { architectureGate } from "../gates/architecture.js";
+import { faultInjectGate } from "../gates/faultInject.js";
+import { regressionGate } from "../gates/regression.js";
+import { assembleArtifact } from "./artifact.js";
+import type { JudgmentRunner } from "../judgment/runner.js";
+import type { Mutator, TestRunner } from "../faultinject/interfaces.js";
+import type { Sandbox } from "../sandbox/sandbox.js";
 const gitVerifyClean = async (workdir: string): Promise<boolean> => {
   const res = await execa("git", ["-C", workdir, "diff", "--exit-code"], { reject: false });
   return res.exitCode === 0;

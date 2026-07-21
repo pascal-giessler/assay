@@ -1,6 +1,6 @@
-import type { Mutation, Mutator, TestRunner, TestOutcome } from "../faultinject/interfaces";
-import type { Sandbox } from "../sandbox/sandbox";
-import type { GateResult, Tier } from "../core/verdicts";
+import type { Mutation, Mutator, TestRunner, TestOutcome } from "../faultinject/interfaces.js";
+import type { Sandbox } from "../sandbox/sandbox.js";
+import type { GateResult, Tier } from "../core/verdicts.js";
 export type CriterionMutation = { criterion: string; mutation: Mutation };
 export async function faultInjectGate(input: {
   criteria: CriterionMutation[]; baselineOutcome: TestOutcome;

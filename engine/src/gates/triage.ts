@@ -1,4 +1,4 @@
-import type { Tier } from "../core/verdicts";
+import type { Tier } from "../core/verdicts.js";
 const CMP = /(==|!=|<=|>=|<|>)/;
 const signals: { name: string; test: (l: string) => boolean }[] = [
   { name: "guard/branch condition",

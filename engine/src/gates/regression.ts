@@ -1,6 +1,6 @@
-import type { TestRunner } from "../faultinject/interfaces";
-import type { Sandbox } from "../sandbox/sandbox";
-import type { GateResult } from "../core/verdicts";
+import type { TestRunner } from "../faultinject/interfaces.js";
+import type { Sandbox } from "../sandbox/sandbox.js";
+import type { GateResult } from "../core/verdicts.js";
 export async function regressionGate(input: {
   testCmd: string; workdir: string; runner: TestRunner; sandbox: Sandbox;
 }): Promise<GateResult> {

@@ -1,4 +1,4 @@
-import type { GateResult, Tier, Verdict } from "./verdicts";
+import type { GateResult, Tier, Verdict } from "./verdicts.js";
 const tierLabel = (t: Tier) => ({ "tier-0": "Tier 0 Mechanical", "tier-1": "Tier 1 Standard", "tier-2": "Tier 2 Critical" }[t]);
 export function assembleArtifact(input: {
   changesetId: string; mode: "spec" | "inference"; tier: Tier; gates: GateResult[];

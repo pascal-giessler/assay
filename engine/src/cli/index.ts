@@ -1,9 +1,9 @@
 import { Command } from "commander";
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { createServer } from "node:http";
-import { extname } from "node:path";
-import type { ChangesetContext } from "../core/changeset";
-import type { GateResult, Tier } from "../core/verdicts";
+import { extname, resolve } from "node:path";
+import type { ChangesetContext } from "../core/changeset.js";
+import type { GateResult, Tier } from "../core/verdicts.js";
 
 export type PrRef = { range: string; requirement: string | null; title: string };
 
@@ -38,14 +38,15 @@ export function buildProgram(deps: CliDeps): Command {
     .option("--out <path>")
     .action(async (number, o) => {
       if (!deps.resolvePr) throw new Error("pr review is not available: resolvePr dependency is not wired");
-      const { range, requirement, title } = await deps.resolvePr({ number, workdir: o.workdir, base: o.base });
-      const ctx = await deps.loadChangeset({ range, workdir: o.workdir, testCmd: o.testCmd, requirement });
+      const workdir = resolve(o.workdir);
+      const { range, requirement, title } = await deps.resolvePr({ number, workdir, base: o.base });
+      const ctx = await deps.loadChangeset({ range, workdir, testCmd: o.testCmd, requirement });
       const { markdown } = await deps.runReview(ctx);
       const content = o.format === "html" ? deps.renderReport(markdown, `Review — ${title}`) : markdown;
       deps.writeOut(o.out, content);
     });
 
-  program.argument("[range]")
+  program.command("review [range]", { isDefault: true })
     .option("--test-cmd <cmd>")
     .option("--spec <file>")
     .option("--workdir <dir>", "workdir", ".")
@@ -53,7 +54,8 @@ export function buildProgram(deps: CliDeps): Command {
     .option("--out <path>")
     .action(async (range, o) => {
       if (!range) return;
-      const ctx = await deps.loadChangeset({ range, workdir: o.workdir, testCmd: o.testCmd, requirement: o.spec ?? null });
+      const workdir = resolve(o.workdir);
+      const ctx = await deps.loadChangeset({ range, workdir, testCmd: o.testCmd, requirement: o.spec ?? null });
       const { markdown } = await deps.runReview(ctx);
       const content = o.format === "html" ? deps.renderReport(markdown, "Review Report") : markdown;
       deps.writeOut(o.out, content);
@@ -113,12 +115,12 @@ export function defaultServe(o: { report?: string; port?: number }): Promise<voi
 }
 
 async function main(): Promise<void> {
-  const { DockerSandbox } = await import("../sandbox/docker");
-  const { HeadlessClaudeRunner } = await import("../judgment/headless");
-  const { PythonSourceMutator, PytestRunner } = await import("../faultinject/python");
-  const { loadChangeset } = await import("../core/changeset");
-  const { runReview } = await import("../core/driver");
-  const { renderReport } = await import("../report/html");
+  const { DockerSandbox } = await import("../sandbox/docker.js");
+  const { HeadlessClaudeRunner } = await import("../judgment/headless.js");
+  const { PythonSourceMutator, PytestRunner } = await import("../faultinject/python.js");
+  const { loadChangeset } = await import("../core/changeset.js");
+  const { runReview } = await import("../core/driver.js");
+  const { renderReport } = await import("../report/html.js");
 
   const image = process.env.REVIEW_SANDBOX_IMAGE ?? "review-engine-python:latest";
   const sandbox = new DockerSandbox({ image });

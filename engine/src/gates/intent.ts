@@ -1,6 +1,6 @@
-import type { ChangesetContext } from "../core/changeset";
-import type { GateResult } from "../core/verdicts";
-import type { JudgmentRunner, IntentResult } from "../judgment/runner";
+import type { ChangesetContext } from "../core/changeset.js";
+import type { GateResult } from "../core/verdicts.js";
+import type { JudgmentRunner, IntentResult } from "../judgment/runner.js";
 const PROMPT = "You are an INDEPENDENT reviewer. From the evidence bundle ONLY (you did not write this code and have no authoring context), reconstruct what the change does, then compare to the requirement. Return JSON {reconstruction, criterionTable:[{criterion,status:'met'|'not met'|'not addressed'}], mutations:[{criterion,file,find,replace}]} where each mutation is a single, uniquely-matching source edit that would break that criterion.";
 export async function intentGate(ctx: ChangesetContext, runner: JudgmentRunner):
   Promise<{ result: GateResult; mutations: IntentResult["mutations"] }> {

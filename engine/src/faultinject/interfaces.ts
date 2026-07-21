@@ -1,4 +1,4 @@
-import type { Sandbox } from "../sandbox/sandbox";
+import type { Sandbox } from "../sandbox/sandbox.js";
 export type Mutation = { file: string; find: string; replace: string };
 export interface Mutator { apply(m: Mutation, workdir: string): Promise<() => Promise<void>>; }
 export type TestOutcome = { passed: boolean; failedTests: string[]; raw: string };

@@ -1,5 +1,5 @@
 import { execa } from "execa";
-import type { Sandbox, SandboxRun, SandboxResult } from "./sandbox";
+import type { Sandbox, SandboxRun, SandboxResult } from "./sandbox.js";
 export class DockerSandbox implements Sandbox {
   constructor(private opts: { image: string }) {}
   async run(r: SandboxRun): Promise<SandboxResult> {
