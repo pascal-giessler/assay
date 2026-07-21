@@ -118,6 +118,10 @@ assay <base>..<head> \
 - **`--format md`** (default) prints/writes markdown instead of HTML.
 - Omit **`--out`** to write to stdout.
 
+### Language
+
+Use `--lang en` (default) or `--lang de` to render the entire report, including diagnostic and model prose, in English or German. The HTML report includes Gate 2's interactive control-flow diagram overlaid with coverage verdicts, which remains fully self-contained and can be opened offline.
+
 Then browse the report:
 
 ```bash

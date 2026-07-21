@@ -23,7 +23,7 @@ For a changeset it runs four gates and records a verdict + evidence for each:
 | Gate | Name | Kind | What it establishes |
 |------|------|------|---------------------|
 | 1 | Intent Match | judgment | Reconstructs what the change does *from evidence alone* (no authoring context), then compares to the requirement. In *inference mode* (no spec) it only elicits intent for a human — never auto-passes. |
-| 2 | Architecture Conformance | judgment | Abstains (`no-baseline`) in this slice — real conformance needs a stated architecture reference (fast-follow). |
+| 2 | Architecture Conformance | judgment | Synthesizes a control-flow diagram of the change from the same judgment call and overlays Gate 3's guarded/unguarded verdict onto it (interactive SVG in the HTML report, text outline in markdown). Still `needs-human` — it does not establish architecture conformance (no baseline), but makes untested branches visible. |
 | 3 | Test Adequacy | mechanical | **Fault injection**: mutates the source per criterion, runs the suite. A test going red means the criterion is *guarded*; a suite staying green means it is *unguarded* — a gap the coverage number hides. |
 | 4 | Regression | mechanical | Runs the suite and records pass/fail + selection basis. |
 
@@ -92,6 +92,7 @@ Options:
 | `--spec <file>` | requirement/acceptance-criteria file → **spec mode**. Omit for **inference mode**. |
 | `--format md\|html` | output format; `md` (default) or a self-contained HTML report |
 | `--out <path>` | write to a file; omit to print to stdout |
+| `--lang <en\|de>` | report language; `en` (default) or `de` (German) |
 
 Environment:
 
@@ -111,12 +112,11 @@ cd /path/to/target/repo          # a clone of the repo the PR targets
 export ANTHROPIC_API_KEY=sk-ant-...
 assay pr 248 \
   --test-cmd "python -m pytest -q" \
-  --format html --out review.html
+  --format html --out review.html \
+  --lang de
 ```
 
-`--base <ref>` overrides the branch to diff against; `--workdir`, `--format`, and
-`--out` behave as above. Under the hood it runs `gh pr checkout`, reads the PR's
-base branch / title / body, and reviews only the PR's own changes.
+This renders the report in German. `--base <ref>` overrides the branch to diff against; `--workdir`, `--format`, `--out`, and `--lang` behave as above. Under the hood it runs `gh pr checkout`, reads the PR's base branch / title / body, and reviews only the PR's own changes.
 
 View a generated HTML report locally:
 
