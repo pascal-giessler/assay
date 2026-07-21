@@ -1,0 +1,78 @@
+export type Lang = "en" | "de";
+export type Strings = Record<string, string>;
+
+const en: Strings = {
+  "title.review": "Review Artifact",
+  "header.changesetId": "Changeset id",
+  "header.mode": "Requirement mode",
+  "header.tier": "Risk tier",
+  "tier.tier-0": "Tier 0 Mechanical",
+  "tier.tier-1": "Tier 1 Standard",
+  "tier.tier-2": "Tier 2 Critical",
+  "gate1.name": "Gate 1 — Intent Match",
+  "gate2.name": "Gate 2 — Architecture Conformance",
+  "gate3.name": "Gate 3 — Test Adequacy",
+  "gate4.name": "Gate 4 — Regression",
+  "label.verdict": "verdict",
+  "label.evidence": "evidence",
+  "label.flow": "flow",
+  "status.guarded": "guarded",
+  "status.unguarded": "unguarded",
+  "status.unanalyzed": "unanalyzed",
+  "synthesis.name": "Synthesis",
+  "synthesis.mustVerify": "The human must personally verify:",
+  "dne.name": "What this review does NOT establish",
+  "dne.sharedBlindSpot": "Shared-blind-spot residue",
+  "dne.downgraded": "Downgraded/abstained gates",
+  "dne.unguarded": "Unguarded criteria",
+  "dne.regressionBasis": "Regression selection basis",
+  "flow.notSynthesized": "flow not synthesized",
+  "flow.htmlPointer": "(interactive diagram in the HTML report)",
+  "panel.sourceLine": "Source line",
+  "panel.status": "Coverage",
+  "panel.guardedBy": "Guarded by",
+  "panel.noTest": "no test guards this path",
+  "legend.title": "Coverage",
+};
+
+const de: Strings = {
+  "title.review": "Review-Artefakt",
+  "header.changesetId": "Änderungs-ID",
+  "header.mode": "Anforderungsmodus",
+  "header.tier": "Risikostufe",
+  "tier.tier-0": "Stufe 0 Mechanisch",
+  "tier.tier-1": "Stufe 1 Standard",
+  "tier.tier-2": "Stufe 2 Kritisch",
+  "gate1.name": "Tor 1 — Absichtsabgleich",
+  "gate2.name": "Tor 2 — Architekturkonformität",
+  "gate3.name": "Tor 3 — Testabdeckung",
+  "gate4.name": "Tor 4 — Regression",
+  "label.verdict": "Urteil",
+  "label.evidence": "Belege",
+  "label.flow": "Ablauf",
+  "status.guarded": "abgesichert",
+  "status.unguarded": "ungesichert",
+  "status.unanalyzed": "nicht analysiert",
+  "synthesis.name": "Synthese",
+  "synthesis.mustVerify": "Der Mensch muss persönlich prüfen:",
+  "dne.name": "Was diese Prüfung NICHT belegt",
+  "dne.sharedBlindSpot": "Gemeinsamer blinder Fleck",
+  "dne.downgraded": "Herabgestufte/enthaltene Tore",
+  "dne.unguarded": "Ungesicherte Kriterien",
+  "dne.regressionBasis": "Regressions-Auswahlbasis",
+  "flow.notSynthesized": "Ablauf nicht erzeugt",
+  "flow.htmlPointer": "(interaktives Diagramm im HTML-Bericht)",
+  "panel.sourceLine": "Quellzeile",
+  "panel.status": "Abdeckung",
+  "panel.guardedBy": "Abgesichert durch",
+  "panel.noTest": "kein Test sichert diesen Pfad ab",
+  "legend.title": "Abdeckung",
+};
+
+export const TABLES: Record<Lang, Strings> = { en, de };
+
+export function t(lang: Lang, key: string): string {
+  const v = TABLES[lang][key];
+  if (v === undefined) throw new Error(`missing i18n key: ${key} (${lang})`);
+  return v;
+}
