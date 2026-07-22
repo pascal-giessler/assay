@@ -85,7 +85,7 @@ const CLIENT = `(function(){
   var panel=document.getElementById('flow-panel');
   function show(id){var n=byId(id),o=d.overlay[id]||{status:'unanalyzed',tests:[]},L=d.i18n;
     var lines=['<strong>'+esc(n.label)+'</strong>'];
-    if(n.sourceLine)lines.push(L.sourceLine+': '+n.sourceLine);
+    if(n.sourceLine)lines.push(L.sourceLine+': '+esc(n.sourceLine));
     lines.push(L.status+': '+esc(L[o.status]||o.status));
     lines.push(L.guardedBy+': '+((o.tests&&o.tests.length)?o.tests.map(esc).join(', '):L.noTest));
     panel.innerHTML=lines.join('<br>');panel.hidden=false;}
@@ -143,7 +143,7 @@ export function renderDashboard(doc: ReviewDocument): string {
   const dne = doc.doesNotEstablish;
   return `<!doctype html><html lang="${esc(lang)}"><head><meta charset="utf-8">` +
     `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-    `<title>Assay — ${esc(t(lang, "title.review"))}</title><style>${STYLE}</style></head><body>` +
+    `<title>Assay: ${esc(t(lang, "title.review"))}</title><style>${STYLE}</style></head><body>` +
     `<main class="assay">` +
     `<div class="band"><span class="tier">${esc(t(lang, `tier.${doc.tier}`))}</span>` +
     `<span>${esc(t(lang, "ui.overall"))} ${verdictToken(doc.overall.verdict)}</span>` +
