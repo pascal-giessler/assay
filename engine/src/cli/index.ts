@@ -110,27 +110,31 @@ const MIME: Record<string, string> = {
   ".md": "text/plain; charset=utf-8",
 };
 
+export async function handleReportRequest(
+  reportPath: string | undefined,
+  res: { writeHead: (code: number, headers: Record<string, string>) => void; end: (body?: string | Buffer) => void },
+): Promise<void> {
+  if (!reportPath || !existsSync(reportPath)) {
+    res.writeHead(404, { "content-type": "text/plain" }); res.end("report not found"); return;
+  }
+  const body = readFileSync(reportPath);
+  if (extname(reportPath) === ".json") {
+    try {
+      const { renderDashboard } = await import("../report/dashboard.js");
+      const html = renderDashboard(JSON.parse(body.toString()));
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(html);
+    } catch {
+      res.writeHead(400, { "content-type": "text/plain" }); res.end("invalid review JSON");
+    }
+    return;
+  }
+  res.writeHead(200, { "content-type": MIME[extname(reportPath)] ?? "application/octet-stream" }); res.end(body);
+}
+
 export function defaultServe(o: { report?: string; port?: number }): Promise<void> {
   const port = o.port ?? 8080;
   return new Promise((resolvePromise, reject) => {
-    const server = createServer(async (req, res) => {
-      const reportPath = o.report;
-      if (!reportPath || !existsSync(reportPath)) {
-        res.writeHead(404, { "content-type": "text/plain" }); res.end("report not found"); return;
-      }
-      const body = readFileSync(reportPath);
-      if (extname(reportPath) === ".json") {
-        try {
-          const { renderDashboard } = await import("../report/dashboard.js");
-          const html = renderDashboard(JSON.parse(body.toString()));
-          res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(html);
-        } catch {
-          res.writeHead(400, { "content-type": "text/plain" }); res.end("invalid review JSON");
-        }
-        return;
-      }
-      res.writeHead(200, { "content-type": MIME[extname(reportPath)] ?? "application/octet-stream" }); res.end(body);
-    });
+    const server = createServer((req, res) => handleReportRequest(o.report, res));
     server.on("error", reject);
     server.listen(port, () => { process.stdout.write(`Serving ${o.report ?? "(no report)"} on http://localhost:${port}\n`); resolvePromise(); });
   });
