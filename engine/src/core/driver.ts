@@ -7,6 +7,7 @@ import { architectureGate } from "../gates/architecture.js";
 import { faultInjectGate } from "../gates/faultInject.js";
 import { regressionGate } from "../gates/regression.js";
 import { assembleArtifact } from "./artifact.js";
+import { assembleReviewDocument, type ReviewDocument } from "./reviewDocument.js";
 import type { JudgmentRunner, FlowGraph, FlowOverlay } from "../judgment/runner.js";
 import type { Mutator, TestRunner } from "../faultinject/interfaces.js";
 import type { Sandbox } from "../sandbox/sandbox.js";
@@ -23,7 +24,7 @@ export async function runReview(
     verifyClean?: (workdir: string) => Promise<boolean>;
   },
   opts: { lang?: Lang } = {},
-): Promise<{ tier: Tier; gates: GateResult[]; markdown: string; graph?: FlowGraph; overlay?: FlowOverlay }> {
+): Promise<{ tier: Tier; gates: GateResult[]; markdown: string; document: ReviewDocument }> {
   const lang = opts.lang ?? "en";
   const verifyClean = deps.verifyClean ?? gitVerifyClean;
   const { tier } = triage(ctx.diff);
@@ -49,16 +50,18 @@ export async function runReview(
     g2.subReason === "no-flow" ? t(lang, "dne.gate2NoFlow")
     : g2.subReason === "no-baseline" ? t(lang, "dne.gate2NoBaseline")
     : t(lang, "common.none");
-  const markdown = assembleArtifact({
-    changesetId: "discount@fixture", mode: ctx.mode, tier, gates, lang,
-    synthesis: { verdict: synthesisVerdict,
-      humanMustVerify: unguarded.length ? [`${t(lang, "synth.leaveUntested")} ${unguarded.join(", ")}`] : [t(lang, "synth.confirmIntent")] },
-    doesNotEstablish: {
-      sharedBlindSpot: t(lang, "dne.sharedBlindSpotText"),
-      downgradedGates: downgraded,
-      unguardedCriteria: unguarded.length ? unguarded.join(", ") : t(lang, "common.none"),
-      regressionBasis: String(g4.evidence["selection-basis"]) === "full suite" ? t(lang, "regression.fullSuite") : String(g4.evidence["selection-basis"]),
-    },
-  });
-  return { tier, gates, markdown, graph: g2.evidence.graph as FlowGraph | undefined, overlay: g2.evidence.overlay as FlowOverlay | undefined };
+  const synthesis = { verdict: synthesisVerdict,
+    humanMustVerify: unguarded.length ? [`${t(lang, "synth.leaveUntested")} ${unguarded.join(", ")}`] : [t(lang, "synth.confirmIntent")] };
+  const doesNotEstablish = {
+    sharedBlindSpot: t(lang, "dne.sharedBlindSpotText"),
+    downgradedGates: downgraded,
+    unguardedCriteria: unguarded.length ? unguarded.join(", ") : t(lang, "common.none"),
+    regressionBasis: String(g4.evidence["selection-basis"]) === "full suite" ? t(lang, "regression.fullSuite") : String(g4.evidence["selection-basis"]),
+  };
+  const markdown = assembleArtifact({ changesetId: "discount@fixture", mode: ctx.mode, tier, gates, lang, synthesis, doesNotEstablish });
+  const flow = g2.evidence.graph
+    ? { graph: g2.evidence.graph as FlowGraph, overlay: g2.evidence.overlay as FlowOverlay }
+    : null;
+  const document = assembleReviewDocument({ changesetId: "discount@fixture", mode: ctx.mode, tier, lang, gates, flow, synthesis, doesNotEstablish });
+  return { tier, gates, markdown, document };
 }
