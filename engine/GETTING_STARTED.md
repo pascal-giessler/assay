@@ -23,8 +23,10 @@ records a verdict + evidence for each:
    *unguarded* — a gap your coverage number hides.
 4. **Regression** — runs the suite and records the result.
 
-You get a markdown artifact and an HTML report, ending with a required
-"**What this review does NOT establish**" section — the honest limits of the run.
+You get a markdown artifact or a portable JSON `ReviewDocument` (`--format json`),
+either way ending with a required "**What this review does NOT establish**"
+section: the honest limits of the run. Serve the JSON document with
+`assay serve` to view it as a branded, interactive dashboard.
 
 Everything that touches the target repo runs in a **Docker sandbox** (tests with
 no network; only the intent call gets network), and the host repo is never
@@ -107,27 +109,31 @@ assay <base>..<head> \
   --workdir /path/to/your/repo \
   --test-cmd "python -m pytest -q" \
   --spec requirement.txt \
-  --format html \
-  --out review.html
+  --format json \
+  --out review.json
 ```
 
 - **`--spec requirement.txt`** puts Assay in *spec mode* — it checks the change
   against your stated acceptance criteria. Omit it for *inference mode*, where
   Assay reconstructs the likely intent and hands it to you to confirm (it never
   auto-approves an inferred intent).
-- **`--format md`** (default) prints/writes markdown instead of HTML.
+- **`--format md`** (default) prints/writes plain markdown; **`--format json`**
+  writes a portable `ReviewDocument` you can serve as the branded dashboard (see
+  below), archive, or feed into other tooling.
 - Omit **`--out`** to write to stdout.
 
 ### Language
 
-Use `--lang en` (default) or `--lang de` to render the entire report, including diagnostic and model prose, in English or German. The HTML report includes Gate 2's interactive control-flow diagram overlaid with coverage verdicts, which remains fully self-contained and can be opened offline.
+Use `--lang en` (default) or `--lang de` to render the entire report, including diagnostic and model prose, in English or German. The served dashboard includes Gate 2's interactive, coverage-colored control-flow diagram overlaid with the guarded/unguarded verdicts.
 
-Then browse the report:
+Then view the branded, interactive report:
 
 ```bash
-assay serve --report review.html --port 8080
+assay serve --report review.json --port 8080
 # open http://localhost:8080
 ```
+
+This renders the dark Assay theme: a gate rail, a Gate 3 hero table, and the coverage-colored flow diagram, all sourced from the JSON `ReviewDocument`.
 
 ### Reading the result
 

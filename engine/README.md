@@ -3,8 +3,9 @@
 **Independent review that proves your tests.**
 
 Assay is an automated code-review engine that runs an abstract, four-gate review
-methodology against a changeset and produces a review artifact (markdown) plus
-a self-contained HTML report. Its signature move: an *assay* determines how much
+methodology against a changeset and produces a review artifact: markdown by
+default, or a portable JSON `ReviewDocument` you can serve as a branded,
+interactive dashboard. Its signature move: an *assay* determines how much
 real precious metal is in ore that looks valuable on the surface — Assay breaks
 your code and watches whether a test actually goes red, revealing how much of a
 green suite's "coverage" is real. It is the tooling implementation of the
@@ -23,7 +24,7 @@ For a changeset it runs four gates and records a verdict + evidence for each:
 | Gate | Name | Kind | What it establishes |
 |------|------|------|---------------------|
 | 1 | Intent Match | judgment | Reconstructs what the change does *from evidence alone* (no authoring context), then compares to the requirement. In *inference mode* (no spec) it only elicits intent for a human — never auto-passes. |
-| 2 | Architecture Conformance | judgment | Synthesizes a control-flow diagram of the change from the same judgment call and overlays Gate 3's guarded/unguarded verdict onto it (interactive SVG in the HTML report, text outline in markdown). Still `needs-human` — it does not establish architecture conformance (no baseline), but makes untested branches visible. |
+| 2 | Architecture Conformance | judgment | Synthesizes a control-flow diagram of the change from the same judgment call and overlays Gate 3's guarded/unguarded verdict onto it (interactive, coverage-colored diagram in the served dashboard, text outline in markdown). Still `needs-human` — it does not establish architecture conformance (no baseline), but makes untested branches visible. |
 | 3 | Test Adequacy | mechanical | **Fault injection**: mutates the source per criterion, runs the suite. A test going red means the criterion is *guarded*; a suite staying green means it is *unguarded* — a gap the coverage number hides. |
 | 4 | Regression | mechanical | Runs the suite and records pass/fail + selection basis. |
 
@@ -78,8 +79,8 @@ assay <base>..<head> \
   --workdir /path/to/target/repo \
   --test-cmd "python -m pytest -q" \
   --spec requirement.txt \
-  --format html \
-  --out review.html
+  --format json \
+  --out review.json
 ```
 
 Options:
@@ -90,7 +91,7 @@ Options:
 | `--workdir <dir>` | the target repo (where source lives and tests run); default `.` |
 | `--test-cmd "<cmd>"` | how to run the suite, e.g. `python -m pytest -q` |
 | `--spec <file>` | requirement/acceptance-criteria file → **spec mode**. Omit for **inference mode**. |
-| `--format md\|html` | output format; `md` (default) or a self-contained HTML report |
+| `--format <json\|md>` | output format; `md` (default, plain text) or `json` (a ReviewDocument) |
 | `--out <path>` | write to a file; omit to print to stdout |
 | `--lang <en\|de>` | report language; `en` (default) or `de` (German) |
 
@@ -112,17 +113,20 @@ cd /path/to/target/repo          # a clone of the repo the PR targets
 export ANTHROPIC_API_KEY=sk-ant-...
 assay pr 248 \
   --test-cmd "python -m pytest -q" \
-  --format html --out review.html \
+  --format json --out review.json \
   --lang de
 ```
 
 This renders the report in German. `--base <ref>` overrides the branch to diff against; `--workdir`, `--format`, `--out`, and `--lang` behave as above. Under the hood it runs `gh pr checkout`, reads the PR's base branch / title / body, and reviews only the PR's own changes.
 
-View a generated HTML report locally:
+Produce a `ReviewDocument` and view the branded review locally:
 
 ```bash
-assay serve --report review.html --port 8080
+assay review A..B --format json --out review.json
+assay serve --report review.json     # opens the branded review at http://localhost:8080
 ```
+
+`assay serve` reads the `ReviewDocument` and renders it as a self-contained, branded dashboard (dark Assay theme, gate rail, a Gate 3 hero table, and the interactive, coverage-colored flow diagram from Gate 2). The `--format json` output itself is the portable, importable result: plain data you can archive, diff, or feed into other tooling, with no rendering baked in.
 
 ## Testing
 
@@ -158,7 +162,7 @@ MCP/CI/Skill ┘                                             ├─ Gate 1 inten
  (fast-follow)                                             ├─ Gate 2 architecture (abstain in slice)
                                                            ├─ Gate 3 fault-injection (Mutator + TestRunner, via Sandbox)
                                                            └─ Gate 4 regression (TestRunner, via Sandbox)
-                                                              → assembleArtifact (markdown) → renderReport (HTML)
+                                                              → assembleArtifact (markdown) / assembleReviewDocument (JSON)
 ```
 
 Key seams, all injectable (which is why the engine is testable without Docker or
