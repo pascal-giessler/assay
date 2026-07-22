@@ -27,7 +27,7 @@ const en: Strings = {
   "dne.unguarded": "Unguarded criteria",
   "dne.regressionBasis": "Regression selection basis",
   "flow.notSynthesized": "flow not synthesized",
-  "flow.htmlPointer": "(interactive diagram in the HTML report)",
+  "flow.htmlPointer": "(interactive diagram in the served dashboard)",
   "panel.sourceLine": "Source line",
   "panel.status": "Coverage",
   "panel.guardedBy": "Guarded by",
@@ -40,6 +40,11 @@ const en: Strings = {
   "dne.gate2NoBaseline": "Gate 2: no architecture baseline (diagram is comprehension-only)",
   "common.none": "none",
   "regression.fullSuite": "full suite",
+  "ui.overall": "Overall",
+  "ui.humanDecision": "Human decision",
+  "ui.criterion": "Criterion",
+  "ui.coverage": "Coverage",
+  "ui.reconstruction": "Reconstruction",
 };
 
 const de: Strings = {
@@ -68,7 +73,7 @@ const de: Strings = {
   "dne.unguarded": "Ungesicherte Kriterien",
   "dne.regressionBasis": "Regressions-Auswahlbasis",
   "flow.notSynthesized": "Ablauf nicht erzeugt",
-  "flow.htmlPointer": "(interaktives Diagramm im HTML-Bericht)",
+  "flow.htmlPointer": "(interaktives Diagramm im gerenderten Dashboard)",
   "panel.sourceLine": "Quellzeile",
   "panel.status": "Abdeckung",
   "panel.guardedBy": "Abgesichert durch",
@@ -81,6 +86,11 @@ const de: Strings = {
   "dne.gate2NoBaseline": "Tor 2: keine Architektur-Baseline (Diagramm dient nur dem Verständnis)",
   "common.none": "keine",
   "regression.fullSuite": "gesamte Suite",
+  "ui.overall": "Gesamturteil",
+  "ui.humanDecision": "Menschliche Entscheidung",
+  "ui.criterion": "Kriterium",
+  "ui.coverage": "Abdeckung",
+  "ui.reconstruction": "Rekonstruktion",
 };
 
 export const TABLES: Record<Lang, Strings> = { en, de };

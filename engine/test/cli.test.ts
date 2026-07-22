@@ -5,25 +5,32 @@ describe("review CLI", () => {
     let written = "";
     const program = buildProgram({
       loadChangeset: async () => ({ diff: "d", requirement: "r", testCmd: "pytest", workdir: "/w", mode: "spec" }),
-      runReview: async (_ctx, _lang) => ({ tier: "tier-2", gates: [], markdown: "# artifact\n- verdict: needs-human" }),
-      renderReport: (md, _opts) => `<html>${md}</html>`,
+      runReview: async (_ctx, _lang) => ({ tier: "tier-2", gates: [], markdown: "# artifact\n- verdict: needs-human", document: { schemaVersion: 1, changesetId: "c", mode: "spec", tier: "tier-2", lang: "en", overall: { verdict: "needs-human" }, gates: [], flow: null, synthesis: { verdict: "needs-human", humanMustVerify: [] }, doesNotEstablish: { sharedBlindSpot: "", downgradedGates: "", unguardedCriteria: "", regressionBasis: "" } } }),
       writeOut: (path, content) => { written = content; },
       serve: async () => {},
     });
     await program.parseAsync(["node", "review", "A..B", "--test-cmd", "pytest", "--spec", "s", "--workdir", "/w"]);
     expect(written).toContain("# artifact");
   });
-  it("renders HTML when --format html", async () => {
+  it("writes the ReviewDocument as JSON when --format json", async () => {
     let written = "";
     const program = buildProgram({
       loadChangeset: async () => ({ diff: "d", requirement: "r", testCmd: "pytest", workdir: "/w", mode: "spec" }),
-      runReview: async (_ctx, _lang) => ({ tier: "tier-2", gates: [], markdown: "# artifact" }),
-      renderReport: (md, _opts) => `<html>${md}</html>`,
+      runReview: async () => ({ tier: "tier-2", gates: [], markdown: "# a", document: { schemaVersion: 1, changesetId: "c", mode: "spec", tier: "tier-2", lang: "en", overall: { verdict: "pass" }, gates: [], flow: null, synthesis: { verdict: "pass", humanMustVerify: [] }, doesNotEstablish: { sharedBlindSpot: "", downgradedGates: "", unguardedCriteria: "", regressionBasis: "" } } }),
       writeOut: (_p, c) => { written = c; },
       serve: async () => {},
     });
-    await program.parseAsync(["node", "review", "A..B", "--test-cmd", "pytest", "--workdir", "/w", "--format", "html"]);
-    expect(written).toMatch(/^<html>/);
+    await program.parseAsync(["node", "review", "A..B", "--test-cmd", "pytest", "--workdir", "/w", "--format", "json"]);
+    expect(JSON.parse(written).schemaVersion).toBe(1);
+  });
+  it("rejects an invalid --format", async () => {
+    const program = buildProgram({
+      loadChangeset: async () => ({ diff: "d", requirement: "r", testCmd: "pytest", workdir: "/w", mode: "spec" }),
+      runReview: async () => ({ tier: "tier-2", gates: [], markdown: "x", document: { schemaVersion: 1, changesetId: "c", mode: "spec", tier: "tier-2", lang: "en", overall: { verdict: "pass" }, gates: [], flow: null, synthesis: { verdict: "pass", humanMustVerify: [] }, doesNotEstablish: { sharedBlindSpot: "", downgradedGates: "", unguardedCriteria: "", regressionBasis: "" } } }),
+      writeOut: () => {}, serve: async () => {},
+    });
+    await expect(program.parseAsync(["node", "review", "A..B", "--workdir", "/w", "--format", "html"]))
+      .rejects.toThrow(/--format must be/);
   });
   it("reviews a GitHub PR via injected resolvePr, using the PR body as the requirement", async () => {
     let written = "";
@@ -31,26 +38,12 @@ describe("review CLI", () => {
     const program = buildProgram({
       resolvePr: async ({ number }) => ({ range: `merge-base..HEAD#${number}`, requirement: "cap the discount at 50%", title: "Discount cap" }),
       loadChangeset: async (o) => { loaded = { range: o.range, requirement: o.requirement }; return { diff: "d", requirement: o.requirement, testCmd: o.testCmd, workdir: o.workdir, mode: "spec" }; },
-      runReview: async (_ctx, _lang) => ({ tier: "tier-2", gates: [], markdown: "# artifact\n- verdict: needs-human" }),
-      renderReport: (md, _opts) => `<html>${md}</html>`,
+      runReview: async (_ctx, _lang) => ({ tier: "tier-2", gates: [], markdown: "# artifact\n- verdict: needs-human", document: { schemaVersion: 1, changesetId: "c", mode: "spec", tier: "tier-2", lang: "en", overall: { verdict: "needs-human" }, gates: [], flow: null, synthesis: { verdict: "needs-human", humanMustVerify: [] }, doesNotEstablish: { sharedBlindSpot: "", downgradedGates: "", unguardedCriteria: "", regressionBasis: "" } } }),
       writeOut: (_p, c) => { written = c; },
       serve: async () => {},
     });
     await program.parseAsync(["node", "assay", "pr", "248", "--workdir", "/repo"]);
     expect(written).toContain("# artifact");
     expect(loaded).toEqual({ range: "merge-base..HEAD#248", requirement: "cap the discount at 50%" });
-  });
-  it("passes lang and graph/overlay through to the HTML renderer", async () => {
-    let seen: { lang?: string; hasGraph?: boolean } = {};
-    const program = buildProgram({
-      loadChangeset: async () => ({ diff: "d", requirement: "r", testCmd: "pytest", workdir: "/w", mode: "spec" }),
-      runReview: async (_ctx, lang) => { seen.lang = lang; return { tier: "tier-2", gates: [], markdown: "# a",
-        graph: { nodes: [{ id: "n1", label: "x", kind: "entry" }], edges: [] }, overlay: { n1: { status: "unanalyzed", tests: [] } } }; },
-      renderReport: (_md, opts) => { seen.hasGraph = !!opts.graph; return "<html>"; },
-      writeOut: () => {}, serve: async () => {},
-    });
-    await program.parseAsync(["node", "review", "A..B", "--test-cmd", "pytest", "--workdir", "/w", "--format", "html", "--lang", "de"]);
-    expect(seen.lang).toBe("de");
-    expect(seen.hasGraph).toBe(true);
   });
 });

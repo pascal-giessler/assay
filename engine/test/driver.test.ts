@@ -58,7 +58,8 @@ describe("runReview", () => {
     const res = await runReview(ctx, { runner, mutator, testRunner,
       sandbox: new StubSandbox(() => ({ stdout: "2 passed", stderr: "", exitCode: 0 })),
       verifyClean: async () => true }, { lang: "de" });
-    expect(res.overlay?.n1.status).toBe("unguarded"); // mutation left suite green
+    expect(res.document.flow?.overlay.n1.status).toBe("unguarded"); // mutation left suite green
+    expect(res.document.overall.verdict).toBe("needs-human");
     expect(res.markdown).toMatch(/Architekturkonformität/);
   });
 });

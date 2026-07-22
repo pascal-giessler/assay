@@ -34,9 +34,13 @@ describe("golden discount review (deterministic)", () => {
       if (cur === "capped / 100") return { passed: false, failedTests: ["test_applies_percentage"], raw: "" };
       return { passed: true, failedTests: [], raw: "2 passed" };
     } };
-    const { markdown } = await runReview(ctx, { runner, mutator, testRunner,
+    const res = await runReview(ctx, { runner, mutator, testRunner,
       sandbox: new StubSandbox(() => ({ stdout: "2 passed", stderr: "", exitCode: 0 })),
       verifyClean: async () => true });
+    const { markdown } = res;
+    expect(res.document.schemaVersion).toBe(1);
+    expect(res.document.tier).toBe("tier-2");
+    expect(res.document.flow?.overlay.n3.status).toBe("unguarded");
     expect(markdown).toMatch(/Risk tier.*Tier 2/i);
     expect(markdown).toMatch(/Gate 1[\s\S]*verdict.*pass/i);
     expect(markdown).toMatch(/Gate 2[\s\S]*needs-human[\s\S]*no-baseline/i);
@@ -52,7 +56,7 @@ describe("golden discount review (deterministic)", () => {
       verifyClean: async () => true }, { lang: "de" });
     expect(de.markdown).toMatch(/Architekturkonformität/);
     expect(de.markdown).toMatch(/\[ungesichert\]/);
-    expect(de.overlay?.n3.status).toBe("unguarded");
+    expect(de.document.flow?.overlay.n3.status).toBe("unguarded");
     expect(de.markdown).toMatch(/Ist es akzeptabel, diese ungetestet zu lassen\?/);
     expect(de.markdown).toMatch(/Eingaben, die weder Autor noch Prüfer/);
   });

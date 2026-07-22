@@ -4,15 +4,14 @@ import { createServer } from "node:http";
 import { extname, resolve } from "node:path";
 import type { ChangesetContext } from "../core/changeset.js";
 import type { GateResult, Tier } from "../core/verdicts.js";
-import type { FlowGraph, FlowOverlay } from "../judgment/runner.js";
+import type { ReviewDocument } from "../core/reviewDocument.js";
 import { type Lang } from "../report/i18n.js";
 
 export type PrRef = { range: string; requirement: string | null; title: string };
 
 export type CliDeps = {
   loadChangeset: (o: { range: string; workdir: string; testCmd: string; requirement: string | null }) => Promise<ChangesetContext>;
-  runReview: (ctx: ChangesetContext, lang: Lang) => Promise<{ tier: Tier; gates: GateResult[]; markdown: string; graph?: FlowGraph; overlay?: FlowOverlay }>;
-  renderReport: (md: string, opts: { title?: string; lang?: Lang; graph?: FlowGraph; overlay?: FlowOverlay }) => string;
+  runReview: (ctx: ChangesetContext, lang: Lang) => Promise<{ tier: Tier; gates: GateResult[]; markdown: string; document: ReviewDocument }>;
   writeOut: (path: string | undefined, content: string) => void;
   serve: (o: { report?: string; port?: number }) => Promise<void>;
   // Resolve an open GitHub PR to a diff range + requirement. Optional so the
@@ -24,6 +23,12 @@ function parseLang(v: string | undefined): Lang {
   if (v === undefined || v === "en") return "en";
   if (v === "de") return "de";
   throw new Error(`--lang must be "en" or "de", got "${v}"`);
+}
+
+function parseFormat(v: string | undefined): "json" | "md" {
+  if (v === undefined || v === "md") return "md";
+  if (v === "json") return "json";
+  throw new Error(`--format must be "json" or "md", got "${v}"`);
 }
 
 export function buildProgram(deps: CliDeps): Command {
@@ -42,7 +47,7 @@ export function buildProgram(deps: CliDeps): Command {
     .option("--test-cmd <cmd>", "test command", "python -m pytest -q")
     .option("--workdir <dir>", "a local checkout of the target repo", ".")
     .option("--base <ref>", "base ref to diff against (default: the PR base branch)")
-    .option("--format <fmt>", "md|html", "md")
+    .option("--format <fmt>", "json|md", "md")
     .option("--out <path>")
     .option("--lang <lang>", "report language: en|de", "en")
     .action(async (number, o) => {
@@ -52,9 +57,8 @@ export function buildProgram(deps: CliDeps): Command {
       const { range, requirement, title } = await deps.resolvePr({ number, workdir, base: o.base });
       const ctx = await deps.loadChangeset({ range, workdir, testCmd: o.testCmd, requirement });
       const res = await deps.runReview(ctx, lang);
-      const content = o.format === "html"
-        ? deps.renderReport(res.markdown, { title: `Review — ${title}`, lang, graph: res.graph, overlay: res.overlay })
-        : res.markdown;
+      const fmt = parseFormat(o.format);
+      const content = fmt === "json" ? JSON.stringify(res.document, null, 2) : res.markdown;
       deps.writeOut(o.out, content);
     });
 
@@ -62,7 +66,7 @@ export function buildProgram(deps: CliDeps): Command {
     .option("--test-cmd <cmd>")
     .option("--spec <file>")
     .option("--workdir <dir>", "workdir", ".")
-    .option("--format <fmt>", "md|html", "md")
+    .option("--format <fmt>", "json|md", "md")
     .option("--out <path>")
     .option("--lang <lang>", "report language: en|de", "en")
     .action(async (range, o) => {
@@ -71,9 +75,8 @@ export function buildProgram(deps: CliDeps): Command {
       const lang = parseLang(o.lang);
       const ctx = await deps.loadChangeset({ range, workdir, testCmd: o.testCmd, requirement: o.spec ?? null });
       const res = await deps.runReview(ctx, lang);
-      const content = o.format === "html"
-        ? deps.renderReport(res.markdown, { title: "Review Report", lang, graph: res.graph, overlay: res.overlay })
-        : res.markdown;
+      const fmt = parseFormat(o.format);
+      const content = fmt === "json" ? JSON.stringify(res.document, null, 2) : res.markdown;
       deps.writeOut(o.out, content);
     });
 
@@ -107,26 +110,33 @@ const MIME: Record<string, string> = {
   ".md": "text/plain; charset=utf-8",
 };
 
+export async function handleReportRequest(
+  reportPath: string | undefined,
+  res: { writeHead: (code: number, headers: Record<string, string>) => void; end: (body?: string | Buffer) => void },
+): Promise<void> {
+  if (!reportPath || !existsSync(reportPath)) {
+    res.writeHead(404, { "content-type": "text/plain" }); res.end("report not found"); return;
+  }
+  const body = readFileSync(reportPath);
+  if (extname(reportPath) === ".json") {
+    try {
+      const { renderDashboard } = await import("../report/dashboard.js");
+      const html = renderDashboard(JSON.parse(body.toString()));
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(html);
+    } catch {
+      res.writeHead(400, { "content-type": "text/plain" }); res.end("invalid review JSON");
+    }
+    return;
+  }
+  res.writeHead(200, { "content-type": MIME[extname(reportPath)] ?? "application/octet-stream" }); res.end(body);
+}
+
 export function defaultServe(o: { report?: string; port?: number }): Promise<void> {
   const port = o.port ?? 8080;
-  return new Promise((resolve, reject) => {
-    const server = createServer((req, res) => {
-      const reportPath = o.report;
-      if (!reportPath || !existsSync(reportPath)) {
-        res.writeHead(404, { "content-type": "text/plain" });
-        res.end("report not found");
-        return;
-      }
-      const body = readFileSync(reportPath);
-      const contentType = MIME[extname(reportPath)] ?? "application/octet-stream";
-      res.writeHead(200, { "content-type": contentType });
-      res.end(body);
-    });
+  return new Promise((resolvePromise, reject) => {
+    const server = createServer((req, res) => handleReportRequest(o.report, res));
     server.on("error", reject);
-    server.listen(port, () => {
-      process.stdout.write(`Serving ${o.report ?? "(no report)"} on http://localhost:${port}\n`);
-      resolve();
-    });
+    server.listen(port, () => { process.stdout.write(`Serving ${o.report ?? "(no report)"} on http://localhost:${port}\n`); resolvePromise(); });
   });
 }
 
@@ -136,7 +146,6 @@ async function main(): Promise<void> {
   const { PythonSourceMutator, PytestRunner } = await import("../faultinject/python.js");
   const { loadChangeset } = await import("../core/changeset.js");
   const { runReview } = await import("../core/driver.js");
-  const { renderReport } = await import("../report/html.js");
 
   const image = process.env.REVIEW_SANDBOX_IMAGE ?? "review-engine-python:latest";
   const sandbox = new DockerSandbox({ image });
@@ -147,7 +156,6 @@ async function main(): Promise<void> {
   const deps: CliDeps = {
     loadChangeset: (o) => loadChangeset({ range: o.range, workdir: o.workdir, testCmd: o.testCmd, requirement: o.requirement }),
     runReview: (ctx, lang) => runReview(ctx, { runner, mutator, testRunner, sandbox }, { lang }),
-    renderReport,
     writeOut: defaultWriteOut,
     serve: defaultServe,
     resolvePr: defaultResolvePr,
